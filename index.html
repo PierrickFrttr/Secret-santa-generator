@@ -134,7 +134,7 @@ button.tag:disabled{filter:grayscale(.7) opacity(.45);cursor:not-allowed;transfo
 @keyframes pop{0%{opacity:1;transform:translate(0,0) rotate(0)}100%{opacity:0;transform:translate(var(--x),var(--y)) rotate(var(--r))}}
 .result{opacity:0;transform:translateY(16px) scale(.96);transition:opacity .6s .45s,transform .6s .45s;pointer-events:none}
 .go .result{opacity:1;transform:none;pointer-events:auto}
-.go .tap{display:none}
+.go .tap,.go .hello-top{display:none}
 .result p{margin:0}
 .result .hello{color:var(--muted);font-weight:500;margin-top:6px}
 .bigtag{display:inline-block;margin:18px auto 10px;padding:26px 44px 18px;max-width:100%;
@@ -188,6 +188,85 @@ footer button{background:none;color:var(--night2);font-weight:700;text-decoratio
 .empty-state{text-align:center;padding:30px 10px 10px;color:var(--muted)}
 .taken-note{display:block;font-family:Outfit,system-ui,sans-serif;font-size:12px;font-weight:700;margin-top:2px;opacity:.9}
 @media(max-width:600px){.toolbar h2{width:100%;text-align:center}.toolbar .row{width:100%;justify-content:center}.prog{flex-basis:100%}.prog p{text-align:left}}
+
+/* ---- type de lien ---- */
+.modes{border:0;padding:0;margin:4px 0 18px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.modes legend{font-weight:700;font-size:14px;color:var(--night2);margin-bottom:6px;padding:0}
+.mode{display:flex;gap:12px;align-items:flex-start;margin:0;padding:14px 16px;border:2px solid var(--line);border-radius:16px;background:#fff;cursor:pointer;font-weight:400;font-size:15px;color:var(--ink);transition:border-color .15s,background .15s}
+.mode input{width:20px;height:20px;min-height:0;margin:2px 0 0;accent-color:var(--red);flex:none}
+.mode b{display:block;font-size:16px;color:var(--night2)}
+.mode small{display:block;color:var(--muted);line-height:1.4;margin-top:2px}
+.mode:has(input:checked){border-color:var(--red);background:#fff6f4}
+.people .acts{display:flex;gap:6px;flex:none}
+.wa1{display:inline-flex;align-items:center;text-decoration:none;color:#13703b}
+.check{border-radius:16px;padding:16px 18px;margin-top:14px}
+.check.good{background:#e6f4ea;color:#14532d}.check.bad{background:#fde8ea;color:var(--red2)}
+.check b{font-size:17px}
+.check ul{list-style:none;padding:0;margin:8px 0}
+.check li{margin:4px 0;font-weight:500}
+.check small{color:inherit;opacity:.75}
+.hello-top{font-size:clamp(28px,7vw,38px);color:var(--night2);margin:4px 0 0}
+.foot-actions{justify-content:space-between}
+
+/* ---- téléphone d'abord ---- */
+@media(max-width:600px){
+  body{font-size:16px}
+  .garland{height:70px}
+  header{margin-top:-14px}
+  header h1{font-size:46px}
+  header p{font-size:15px;margin-top:6px}
+  .hills{height:96px;margin-top:0}
+  main{padding:0 10px calc(40px + env(safe-area-inset-bottom))}
+  .card{top:-44px;border-radius:22px;padding:34px 16px 22px}
+  .bow{width:80px;height:52px;top:-28px}
+  .card h2{font-size:30px}
+  .lead{font-size:16px;margin:8px auto 18px}
+  .pills{margin:-6px 0 14px}
+  .pills span{font-size:13px;padding:5px 11px}
+  .tagrow.pickgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:30px 12px;padding-top:24px}
+  .pickgrid .tagwrap{display:block}
+  .pickgrid .tag{width:100%;min-height:68px;min-width:0}
+  .pickgrid .tag .hand{font-size:27px}
+  .row{flex-direction:column-reverse;align-items:stretch}
+  .row>*{width:100%}
+  .ask .hand{font-size:56px}
+  .gift{width:200px}
+  .stage{padding-top:20px}
+  .burst{top:120px}
+  .bigtag{padding:22px 30px 14px}
+  .modes{grid-template-columns:minmax(0,1fr)}
+  .panel,.draw{padding:16px;border-radius:18px}
+  .draw h3,.panel h3{font-size:23px}
+  .link-row{flex-direction:column}
+  .link-row .linkbox{flex:none}
+  .link-row .btn{width:100%;min-height:52px}
+  .people li{flex-wrap:wrap}
+  .people .acts{width:100%}
+  .people .acts>*{flex:1;justify-content:center}
+  .foot-actions{flex-direction:column-reverse;align-items:stretch}
+  .foot-actions>*{width:100%}
+  .foot-actions [data-slot]{display:flex;flex-direction:column;align-items:center;gap:8px}
+  .ask-inline{text-align:center;justify-content:center}
+  footer{margin-top:-26px}
+}
+@media(max-width:360px){.pickgrid .tag .hand{font-size:23px}header h1{font-size:40px}}
+
+.tag .hand.l{font-size:22px}.tag .hand.xl{font-size:18px}
+.tag .hand{overflow-wrap:normal;word-break:normal;hyphens:none}
+.stage:not(.go) .result{position:absolute;visibility:hidden;left:0;right:0}
+.hello-top{margin:0 0 8px}
+.giftbtn:focus:not(:focus-visible){outline:none}
+@media(max-width:600px){
+  .pickgrid .tag .hand.l{font-size:22px}.pickgrid .tag .hand.xl{font-size:18px}
+  .people li{flex-wrap:nowrap}
+  .people .acts{width:auto}
+  .people .acts>*{flex:none}
+  .toolbar .row{flex-direction:column}
+  .toolbar #nw{order:-1}
+  .link-row .linkbox{flex-direction:column;padding:8px}
+  .link-row .linkbox input{font-size:13px;text-align:center;min-height:36px}
+  .link-row .linkbox .btn{width:100%}
+}
 </style>
 </head>
 <body>
@@ -244,20 +323,22 @@ const ROOT = (() => { const p = location.pathname.split('/').filter(Boolean); re
 const local = location.protocol === 'file:';
 function route(){
   const q = new URLSearchParams(location.search);
-  if (q.get('t')) return {slug: q.get('t')};
+  if (q.get('t')) return {slug: q.get('t'), token: q.get('c') || ''};
   if (q.has('admin')) return {admin: true};
   if (location.hash.length > 20) return {legacy: location.hash.slice(1)};
   if (local) return {home: true};
   const rest = location.pathname.slice(ROOT.length).split('/').filter(Boolean)[0] || '';
   if (!rest || rest === 'index.html' || rest === '404.html') return {home: true};
   if (rest === 'admin') return {admin: true};
-  return {slug: decodeURIComponent(rest).toLowerCase()};
+  const segs = location.pathname.slice(ROOT.length).split('/').filter(Boolean);
+  return {slug: decodeURIComponent(segs[0]).toLowerCase(), token: decodeURIComponent(segs[1] || '').toLowerCase()};
 }
 function go(path){
   const url = local ? (path === 'admin' ? '?admin' : path ? '?t=' + path : location.pathname) : ROOT + path;
   history.pushState(null, '', url); render(); window.scrollTo({top: 0});
 }
-const linkFor = id => local ? location.href.split('?')[0] + '?t=' + id : location.origin + ROOT + id;
+const linkFor = (id, tok) => local ? location.href.split('?')[0] + '?t=' + id + (tok ? '&c=' + tok : '') : location.origin + ROOT + id + (tok ? '/' + tok : '');
+const tokFor = (d, i) => (slugify(d.names[i]).slice(0, 16) || 'p') + '-' + d.codes[i];
 window.addEventListener('popstate', () => render());
 
 /* ---------- serveur ---------- */
@@ -271,6 +352,7 @@ const fail = (txt, retry) => {
   app.innerHTML = `<h2>Oups</h2><p class="lead">${esc(txt)}</p>${retry ? '<div class="row"><button class="btn" id="rt" type="button">Réessayer</button></div>' : ''}`;
   if (retry) app.querySelector('#rt').onclick = retry;
 };
+const lenCls = n => n.length > 12 ? ' xl' : n.length > 8 ? ' l' : '';
 const fmt = iso => { const d = new Date(iso); return isNaN(d) ? '' : d.toLocaleString('fr-FR', {day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'}); };
 const pillsOf = d => [d.budget && '💶 Budget ' + d.budget, d.date && '📅 ' + d.date].filter(Boolean).map(m => `<span>${esc(m)}</span>`).join('');
 async function copy(btn, text){
@@ -385,21 +467,32 @@ function paintDash(){
 }
 function drawHTML(d, k){
   const n = d.names.length, done = new Map(d.claimed.map(c => [c.idx, c.at]));
-  const url = linkFor(d.id);
+  const perso = d.mode === 'perso', url = linkFor(d.id);
+  const top = perso
+    ? `<div class="link-row"><button class="btn green" data-a="copyall" type="button">Copier tous les liens</button></div><p class="hint">Envoie à chacun son lien en message privé : il ne marche que pour cette personne.</p>`
+    : `<div class="link-row">
+        <div class="linkbox"><input readonly value="${esc(url)}" aria-label="Lien du tirage"><button class="btn" data-a="copy" type="button">Copier</button></div>
+        <a class="btn wa" href="https://wa.me/?text=${encodeURIComponent(waMsg(d, url))}" target="_blank" rel="noopener">WhatsApp</a>
+      </div>`;
+  const row = (nm, i) => {
+    const st = done.has(i) ? `<small>${perso ? 'Ouvert' : 'Découvert'} le ${esc(fmt(done.get(i)))}</small>` : `<small>${perso ? 'Pas encore ouvert' : 'En attente'}</small>`;
+    let act = '';
+    if (perso) {
+      const pu = linkFor(d.id, tokFor(d, i));
+      act = `<span class="acts"><button class="soft mini" data-a="copy1" data-u="${esc(pu)}" type="button">Copier</button><a class="soft mini wa1" href="https://wa.me/?text=${encodeURIComponent(`🎅 ${nm}, voici ton lien Secret Santa personnel${d.title ? ' (' + d.title + ')' : ''}. Il est rien qu’à toi, ne le partage pas : ${pu}`)}" target="_blank" rel="noopener">WhatsApp</a></span>`;
+    } else if (done.has(i)) act = `<button class="soft mini" data-a="reset" data-i="${i}" type="button">Réinitialiser</button>`;
+    return `<li class="${done.has(i) ? 'done' : ''}"><span><span class="nm">${esc(nm)}</span>${st}</span>${act}</li>`;
+  };
   return `
   <article class="draw" data-k="${k}">
     <div class="drawhead">
-      <div><h3>${esc(d.title || d.id)}</h3><div class="pills">${pillsOf(d)}<span>Créé le ${esc(fmt(d.created))}</span></div></div>
-      <div class="prog"><p>${done.size} / ${n} ont découvert</p><div class="bar"><i style="width:${Math.round(done.size / n * 100)}%"></i></div></div>
+      <div><h3>${esc(d.title || d.id)}</h3><div class="pills">${pillsOf(d)}<span>${perso ? '🔒 Liens perso' : '🔗 Lien de groupe'}</span><span>Créé le ${esc(fmt(d.created))}</span></div></div>
+      <div class="prog"><p>${done.size} / ${n} ${perso ? 'ont ouvert' : 'ont découvert'}</p><div class="bar"><i style="width:${Math.round(done.size / n * 100)}%"></i></div></div>
     </div>
-    <div class="link-row">
-      <div class="linkbox"><input readonly value="${esc(url)}" aria-label="Lien du tirage"><button class="btn" data-a="copy" type="button">Copier</button></div>
-      <a class="btn wa" href="https://wa.me/?text=${encodeURIComponent(waMsg(d, url))}" target="_blank" rel="noopener">WhatsApp</a>
-    </div>
-    <ul class="people">${d.names.map((nm, i) => done.has(i)
-      ? `<li class="done"><span><span class="nm">${esc(nm)}</span><small>Découvert le ${esc(fmt(done.get(i)))}</small></span><button class="soft mini" data-a="reset" data-i="${i}" type="button">Réinitialiser</button></li>`
-      : `<li><span><span class="nm">${esc(nm)}</span><small>En attente</small></span></li>`).join('')}</ul>
-    <div class="foot-actions" data-slot><button class="ghost" data-a="del" type="button">Supprimer ce tirage</button></div>
+    ${top}
+    <ul class="people">${d.names.map(row).join('')}</ul>
+    <div class="verify" data-v></div>
+    <div class="foot-actions"><button class="soft mini" data-a="verify" type="button">Vérifier le tirage</button><span data-slot><button class="ghost" data-a="del" type="button">Supprimer ce tirage</button></span></div>
   </article>`;
 }
 async function onListClick(e){
@@ -407,6 +500,21 @@ async function onListClick(e){
   const art = b.closest('.draw'), d = DRAWS[+art.dataset.k];
   const a = b.dataset.a;
   if (a === 'copy') return copy(b, art.querySelector('input').value);
+  if (a === 'copy1') return copy(b, b.dataset.u);
+  if (a === 'copyall') {
+    const txt = `🎅 Secret Santa${d.title ? ' — ' + d.title : ''}\n` + d.names.map((nm, i) => `${nm} : ${linkFor(d.id, tokFor(d, i))}`).join('\n');
+    await copy(b, txt); setTimeout(() => { b.textContent = 'Copier tous les liens'; }, 1900); return;
+  }
+  if (a === 'verify') {
+    const out = art.querySelector('[data-v]'); b.disabled = true; b.textContent = 'Vérification…';
+    try {
+      const r = await api('verify', {pass: PASS, id: d.id}); if (!r.ok) throw 0;
+      const c = r.checks, all = c.everyoneGives && c.everyoneReceivesOnce && c.nobodySelf && c.singleCircle;
+      const line = (ok, t) => `<li class="${ok ? 'ok' : 'ko'}">${ok ? '✓' : '✗'} ${t}</li>`;
+      out.innerHTML = `<div class="check ${all ? 'good' : 'bad'}"><b>${all ? 'Tirage valide' : 'Problème détecté'}</b><ul>${line(c.everyoneGives, `Les ${r.n} participants offrent chacun un cadeau`)}${line(c.everyoneReceivesOnce, 'Chacun reçoit exactement un cadeau, aucun doublon')}${line(c.nobodySelf, 'Personne ne se tire soi-même')}${line(c.singleCircle, 'Un seul grand cercle, sans petit groupe isolé')}</ul><small>Vérifié par le serveur, sans révéler qui offre à qui.</small></div>`;
+    } catch (x) { out.innerHTML = '<div class="err-box">Vérification impossible, réessaie.</div>'; }
+    b.disabled = false; b.textContent = 'Vérifier le tirage'; return;
+  }
   if (a === 'reset') {
     const li = b.closest('li'), i = +b.dataset.i;
     if (!b.dataset.sure) { b.dataset.sure = 1; b.textContent = 'Confirmer ?'; b.classList.replace('soft', 'btn'); setTimeout(() => { if (b.isConnected) { delete b.dataset.sure; b.textContent = 'Réinitialiser'; b.classList.replace('btn', 'soft'); } }, 4000); return; }
@@ -416,11 +524,11 @@ async function onListClick(e){
     return;
   }
   if (a === 'del') {
-    const slot = b.parentElement;
+    const slot = b.closest('[data-slot]');
     slot.innerHTML = `<span class="ask-inline">Supprimer définitivement « ${esc(d.title || d.id)} » ? Le lien ne marchera plus.</span><button class="soft mini" data-a="nodel" type="button">Annuler</button><button class="btn mini" data-a="yesdel" type="button">Supprimer</button>`;
     return;
   }
-  if (a === 'nodel') { b.parentElement.innerHTML = '<button class="ghost" data-a="del" type="button">Supprimer ce tirage</button>'; return; }
+  if (a === 'nodel') { b.closest('[data-slot]').innerHTML = '<button class="ghost" data-a="del" type="button">Supprimer ce tirage</button>'; return; }
   if (a === 'yesdel') {
     b.disabled = true; b.textContent = 'Suppression…';
     try { const r = await api('delete', {pass: PASS, id: d.id}); if (!r.ok) throw 0; DRAWS = DRAWS.filter(x => x !== d); paintDash(); }
@@ -441,6 +549,10 @@ function createForm(){
         <div><label for="bu">Budget</label><input id="bu" placeholder="20 €" maxlength="20"></div>
         <div><label for="da">Date d’échange</label><input id="da" placeholder="19 décembre" maxlength="40"></div>
       </div>
+      <fieldset class="modes"><legend>Type de lien</legend>
+        <label class="mode"><input type="radio" name="mode" value="commun" checked><span><b>Un lien pour le groupe</b><small>Le plus simple : un seul lien à poster dans la conversation.</small></span></label>
+        <label class="mode"><input type="radio" name="mode" value="perso"><span><b>Un lien par personne</b><small>Anti-triche : chacun reçoit son propre lien en privé.</small></span></label>
+      </fieldset>
       <label for="sl">Fin du lien</label>
       <input id="sl" placeholder="noel-cpe" maxlength="32" autocomplete="off" spellcheck="false">
       <p class="slugline" id="slp"></p>
@@ -454,10 +566,12 @@ function createForm(){
     </section>`;
   const $ = s => box.querySelector(s), nm = $('#nm'), err = $('#err'), sl = $('#sl'), ev = $('#ev');
   let slugTouched = false;
-  const paintSlug = () => { const v = slugify(slugTouched ? sl.value : ev.value) || 'tirage'; $('#slp').innerHTML = `Lien : <b>${esc(linkFor(v))}</b>`; };
+  const modeOf = () => (box.querySelector('input[name=mode]:checked') || {}).value || 'commun';
+  const paintSlug = () => { const v = slugify(slugTouched ? sl.value : ev.value) || 'tirage'; $('#slp').innerHTML = modeOf() === 'perso' ? `Liens : <b>${esc(linkFor(v, 'prenom-x7k2m'))}</b>` : `Lien : <b>${esc(linkFor(v))}</b>`; };
   ev.oninput = paintSlug; sl.oninput = () => { slugTouched = !!sl.value.trim(); paintSlug(); };
+  box.querySelectorAll('input[name=mode]').forEach(x => x.onchange = paintSlug);
   const paint = () => {
-    $('#chips').innerHTML = draft.length ? draft.map((n, i) => `<span class="tagwrap"><span class="tag"><span class="hand">${esc(n)}</span><button class="x" type="button" data-i="${i}" aria-label="Retirer ${esc(n)}">×</button></span></span>`).join('') : '<span class="empty">Les étiquettes apparaîtront ici</span>';
+    $('#chips').innerHTML = draft.length ? draft.map((n, i) => `<span class="tagwrap"><span class="tag"><span class="hand${lenCls(n)}">${esc(n)}</span><button class="x" type="button" data-i="${i}" aria-label="Retirer ${esc(n)}">×</button></span></span>`).join('') : '<span class="empty">Les étiquettes apparaîtront ici</span>';
     $('#count').textContent = draft.length ? `${draft.length} participant${draft.length > 1 ? 's' : ''}${draft.length < 3 ? ' — encore ' + (3 - draft.length) + ' minimum' : ''}` : '';
     $('#go').disabled = draft.length < 3;
     store.set('ss:draft', JSON.stringify(draft));
@@ -477,7 +591,7 @@ function createForm(){
     if (draft.length < 3) return err.textContent = 'Il faut au moins 3 participants.';
     const bt = $('#go'); bt.disabled = true; bt.textContent = 'Tirage en cours…';
     try {
-      const r = await api('create', {pass: PASS, title: ev.value, budget: $('#bu').value, date: $('#da').value, slug: slugTouched ? sl.value : '', names: draft});
+      const r = await api('create', {pass: PASS, title: ev.value, budget: $('#bu').value, date: $('#da').value, slug: slugTouched ? sl.value : '', names: draft, mode: modeOf()});
       if (!r.ok) throw new Error(r.error);
       draft = []; store.set('ss:draft', '[]'); creating = false;
       await dashboard();
@@ -505,6 +619,27 @@ async function participant(slug){
   if (mine) store.del(key);
   pick(d, key);
 }
+async function personal(slug, token){
+  card.classList.remove('wide'); foot.innerHTML = '';
+  loading('On cherche ton paquet sous le sapin…');
+  let d;
+  try {
+    const r = await api('get', {id: slug, code: token});
+    if (r.error === 'notfound') { sub.textContent = SUB; return fail('Ce tirage n’existe pas ou a été supprimé. Vérifie le lien reçu.'); }
+    if (r.error === 'personal') { sub.textContent = SUB; return fail('Ce lien personnel n’est pas valide. Vérifie que tu l’as copié en entier, ou redemande-le à l’organisateur.'); }
+    d = r.draw;
+  } catch (e) { return fail('Impossible de joindre le serveur. Vérifie ta connexion.', () => personal(slug, token)); }
+  sub.textContent = d.title || 'Un tirage t’attend sous le sapin.';
+  const key = 'ss:p:' + slug + ':' + token;
+  let saved = null; try { saved = JSON.parse(store.get(key) || 'null'); } catch (e) {}
+  if (saved && saved.target) return reveal(d.me, saved.target, pillsOf(d), false);
+  reveal(d.me, '', pillsOf(d), true, async () => {
+    const r = await api('claim', {id: slug, code: token});
+    if (!r.ok) throw new Error(r.error || 'x');
+    store.set(key, JSON.stringify({target: r.target}));
+    return r.target;
+  }, `Bonjour ${d.me} !`);
+}
 function pick(d, key, msg){
   const pills = pillsOf(d), claimed = new Set(d.claimed);
   app.innerHTML = `
@@ -512,7 +647,7 @@ function pick(d, key, msg){
     <p class="lead">Touche ton prénom. Une seule identification par personne : pas de seconde chance.</p>
     ${pills ? `<div class="pills">${pills}</div>` : ''}
     ${msg ? `<div class="err-box">${esc(msg)}</div>` : ''}
-    <div class="tagrow">${d.names.map((n, i) => `<span class="tagwrap"><button class="tag" type="button" data-i="${i}" ${claimed.has(i) ? 'disabled aria-label="' + esc(n) + ', déjà découvert"' : ''}><span class="hand">${esc(n)}${claimed.has(i) ? '<span class="taken-note">déjà découvert</span>' : ''}</span></button></span>`).join('')}</div>
+    <div class="tagrow pickgrid">${d.names.map((n, i) => `<span class="tagwrap"><button class="tag" type="button" data-i="${i}" ${claimed.has(i) ? 'disabled aria-label="' + esc(n) + ', déjà découvert"' : ''}><span class="hand${lenCls(n)}">${esc(n)}${claimed.has(i) ? '<span class="taken-note">déjà découvert</span>' : ''}</span></button></span>`).join('')}</div>
     <p class="count" style="margin-top:14px">${claimed.size} / ${d.names.length} ont déjà découvert leur prénom</p>`;
   app.querySelector('.tagrow').onclick = e => { const b = e.target.closest('.tag'); if (b && !b.disabled) ask(d, key, +b.dataset.i); };
 }
@@ -536,7 +671,7 @@ function ask(d, key, i){
     } catch (x) { yes.disabled = false; yes.textContent = 'Réessayer'; }
   };
 }
-function reveal(me, target, pills, fresh){
+function reveal(me, target, pills, fresh, getTarget, hello){
   const cols = ['#f2c35b','#c8202f','#ffffff','#1f7a5c','#f7d98c'];
   const bits = Array.from({length: 34}, (_, k) => {
     const a = k / 34 * Math.PI * 2, d = 90 + Math.random() * 110;
@@ -544,6 +679,7 @@ function reveal(me, target, pills, fresh){
   }).join('');
   app.innerHTML = `
     <div class="stage${fresh ? '' : ' go'}" id="st">
+      ${hello ? `<h2 class="hello-top">${esc(hello)}</h2>` : ''}
       <button class="giftbtn${fresh ? '' : ' opened'}" id="gb" type="button" aria-label="Ouvrir le cadeau">
         <svg class="gift" viewBox="0 0 260 220" aria-hidden="true">
           <ellipse cx="130" cy="210" rx="100" ry="9" fill="#06201a" opacity=".14"/>
@@ -562,15 +698,23 @@ function reveal(me, target, pills, fresh){
       <p class="tap">Touche le paquet pour l’ouvrir</p>
       <div class="result">
         <p class="hello">${esc(me)}, tu offres un cadeau à</p>
-        <div class="bigtag"><span class="hand">${esc(target)}</span></div>
+        <div class="bigtag"><span class="hand" id="tg">${esc(target)}</span></div>
         ${pills ? `<div class="pills" style="margin:6px 0 0">${pills}</div>` : ''}
         <p class="secret">Chut, c’est un secret. Sur cet appareil, tu peux revenir sur ce lien pour revoir le nom.</p>
       </div>
     </div>`;
   if (fresh) {
     const gb = app.querySelector('#gb');
-    gb.onclick = () => { if (gb.classList.contains('opened')) return; gb.classList.add('opened'); setTimeout(() => app.querySelector('#st').classList.add('go'), reduced ? 0 : 280); };
-    gb.focus();
+    const tap = app.querySelector('.tap');
+    gb.onclick = async () => {
+      if (gb.classList.contains('opened') || gb.dataset.busy) return;
+      if (getTarget) {
+        gb.dataset.busy = 1; tap.textContent = 'Le père Noël cherche ton prénom…';
+        try { app.querySelector('#tg').textContent = await getTarget(); }
+        catch (e) { delete gb.dataset.busy; tap.textContent = 'Oups, la connexion a échoué. Touche le paquet pour réessayer.'; return; }
+      }
+      gb.classList.add('opened'); setTimeout(() => app.querySelector('#st').classList.add('go'), reduced ? 0 : 280);
+    };
   }
 }
 
@@ -593,7 +737,7 @@ function legacy(code){
   const key = 'ss:me:' + code, raw = store.get(key), pills = pillsOf({budget: o.b, date: o.d});
   if (raw !== null && o.n[+raw] !== undefined) return reveal(o.n[+raw], o.n[o.c[+raw]], pills, false);
   const d = {id: code, names: o.n, claimed: [], budget: o.b, date: o.d};
-  app.innerHTML = `<h2>Qui es-tu ?</h2><p class="lead">Touche ton prénom. Une seule identification par personne.</p>${pills ? `<div class="pills">${pills}</div>` : ''}<div class="tagrow">${o.n.map((n, i) => `<span class="tagwrap"><button class="tag" type="button" data-i="${i}"><span class="hand">${esc(n)}</span></button></span>`).join('')}</div>`;
+  app.innerHTML = `<h2>Qui es-tu ?</h2><p class="lead">Touche ton prénom. Une seule identification par personne.</p>${pills ? `<div class="pills">${pills}</div>` : ''}<div class="tagrow">${o.n.map((n, i) => `<span class="tagwrap"><button class="tag" type="button" data-i="${i}"><span class="hand${lenCls(n)}">${esc(n)}</span></button></span>`).join('')}</div>`;
   app.querySelector('.tagrow').onclick = e => {
     const b = e.target.closest('.tag'); if (!b) return; const i = +b.dataset.i;
     app.innerHTML = `<div class="ask"><p class="lead" style="margin-bottom:0">Tu confirmes être</p><p class="hand">${esc(o.n[i])} ?</p><div class="row"><button class="soft" id="no" type="button">Non, retour</button><button class="btn" id="yes" type="button">Oui, c’est moi</button></div></div>`;
@@ -606,7 +750,7 @@ function render(){
   const r = route();
   if (r.legacy) return legacy(r.legacy);
   if (r.admin) return admin();
-  if (r.slug) return participant(r.slug);
+  if (r.slug) return r.token ? personal(r.slug, r.token) : participant(r.slug);
   home();
 }
 render();

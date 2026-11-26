@@ -6,6 +6,7 @@
  */
 const PROPS = PropertiesService.getScriptProperties();
 const T_DRAWS = 'Tirages', T_CLAIMS = 'Découvertes';
+const HEAD_DRAWS = ['id', 'titre', 'budget', 'date', 'prenoms', 'cercle (codé)', 'cree_le', 'mode', 'codes'];
 
 function db_() {
   let id = PROPS.getProperty('SHEET_ID'), ss;
@@ -22,13 +23,17 @@ function sheet_(name) {
   if (!sh) {
     sh = ss.insertSheet(name);
     const head = name === T_DRAWS
-      ? ['id', 'titre', 'budget', 'date', 'prenoms', 'cercle (codé)', 'cree_le']
+      ? HEAD_DRAWS
       : ['id', 'index', 'prenom', 'decouvert_le'];
     sh.getRange(1, 1, 1, head.length).setValues([head]).setFontWeight('bold');
     sh.setFrozenRows(1);
-    sh.getRange('A:G').setNumberFormat('@');
+    sh.getRange('A:I').setNumberFormat('@');
     const def = ss.getSheetByName('Feuille 1') || ss.getSheetByName('Sheet1');
     if (def && ss.getSheets().length > 1) ss.deleteSheet(def);
+  }
+  if (name === T_DRAWS && sh.getLastColumn() < HEAD_DRAWS.length) {
+    sh.getRange(1, 1, 1, HEAD_DRAWS.length).setValues([HEAD_DRAWS]).setFontWeight('bold');
+    sh.getRange('A:I').setNumberFormat('@');
   }
   return sh;
 }
@@ -45,8 +50,8 @@ function doPost(e) {
 function handle_(p) {
   try {
     switch (p.action) {
-      case 'get': return out_(getDraw_(String(p.id || '')));
-      case 'claim': return out_(claim_(String(p.id || ''), Number(p.idx)));
+      case 'get': return out_(getDraw_(String(p.id || ''), String(p.code || '')));
+      case 'claim': return out_(claim_(String(p.id || ''), Number(p.idx), String(p.code || '')));
       case 'status': return out_({ ok: true, setup: !!PROPS.getProperty('ADMIN_HASH') });
       case 'setup': return out_(setup_(String(p.pass || '')));
     }
@@ -57,6 +62,7 @@ function handle_(p) {
       case 'create': return out_(create_(p));
       case 'reset': return out_(reset_(String(p.id || ''), Number(p.idx)));
       case 'delete': return out_(delete_(String(p.id || '')));
+      case 'verify': return out_(verify_(String(p.id || '')));
     }
     return out_({ error: 'action' });
   } catch (err) {
@@ -104,7 +110,8 @@ function findDraw_(id) {
   return null;
 }
 function drawObj_(r) {
-  return { id: String(r[0]), title: String(r[1]), budget: String(r[2]), date: String(r[3]), names: JSON.parse(r[4]), created: String(r[6]) };
+  return { id: String(r[0]), title: String(r[1]), budget: String(r[2]), date: String(r[3]), names: JSON.parse(r[4]), created: String(r[6]),
+    mode: String(r[7] || '') === 'perso' ? 'perso' : 'commun', codes: r[8] ? JSON.parse(r[8]) : [] };
 }
 function claimsOf_(id) {
   return rows_(T_CLAIMS).filter(c => String(c[0]) === id).map(c => ({ idx: Number(c[1]), at: String(c[3]) }));
@@ -113,20 +120,38 @@ function cycleOf_(r) {
   return JSON.parse(Utilities.newBlob(Utilities.base64Decode(String(r[5]))).getDataAsString());
 }
 
-function getDraw_(id) {
+function codeIdx_(d, code) {
+  const c = String(code || '').toLowerCase().split('-').pop();
+  return c ? d.codes.indexOf(c) : -1;
+}
+function getDraw_(id, code) {
   const f = findDraw_(id);
   if (!f) return { error: 'notfound' };
-  const d = drawObj_(f.r);
-  d.claimed = claimsOf_(id).map(c => c.idx);
-  return { ok: true, draw: d };
+  const d = drawObj_(f.r), claimed = claimsOf_(id).map(c => c.idx);
+  const pub = { id: d.id, title: d.title, budget: d.budget, date: d.date, mode: d.mode };
+  if (d.mode === 'perso') {
+    const i = codeIdx_(d, code);
+    if (i < 0) return { error: 'personal' };
+    pub.idx = i; pub.me = d.names[i]; pub.opened = claimed.indexOf(i) >= 0; pub.count = d.names.length;
+    return { ok: true, draw: pub };
+  }
+  pub.names = d.names; pub.claimed = claimed;
+  return { ok: true, draw: pub };
 }
 
-function claim_(id, idx) {
+function claim_(id, idx, code) {
   const lock = LockService.getScriptLock(); lock.waitLock(15000);
   try {
     const f = findDraw_(id);
     if (!f) return { error: 'notfound' };
     const d = drawObj_(f.r);
+    if (d.mode === 'perso') {
+      idx = codeIdx_(d, code);
+      if (idx < 0) return { error: 'personal' };
+      // lien personnel : la personne peut revoir son résultat, on ne note que la première ouverture
+      if (!claimsOf_(id).some(c => c.idx === idx)) sheet_(T_CLAIMS).appendRow([id, String(idx), d.names[idx], new Date().toISOString()]);
+      return { ok: true, target: d.names[cycleOf_(f.r)[idx]] };
+    }
     if (!(idx >= 0 && idx < d.names.length)) return { error: 'idx' };
     if (claimsOf_(id).some(c => c.idx === idx)) return { error: 'taken' };
     sheet_(T_CLAIMS).appendRow([id, String(idx), d.names[idx], new Date().toISOString()]);
@@ -157,7 +182,9 @@ function create_(p) {
     if (['admin', 'index', '404'].indexOf(base) >= 0) id = base = base + '-noel';
     while (taken.has(id)) id = base + '-' + (k++);
     const enc = Utilities.base64Encode(JSON.stringify(c), Utilities.Charset.UTF_8);
-    sheet_(T_DRAWS).appendRow([id, title, budget, date, JSON.stringify(names), enc, new Date().toISOString()]);
+    const perso = p.mode === 'perso', AL = 'abcdefghjkmnpqrstuvwxyz23456789', used = {};
+    const codes = perso ? names.map(() => { let k; do { k = ''; for (let i = 0; i < 5; i++) k += AL[Math.floor(Math.random() * AL.length)]; } while (used[k]); used[k] = 1; return k; }) : [];
+    sheet_(T_DRAWS).appendRow([id, title, budget, date, JSON.stringify(names), enc, new Date().toISOString(), perso ? 'perso' : 'commun', JSON.stringify(codes)]);
     return { ok: true, id: id };
   } finally { lock.releaseLock(); }
 }
@@ -186,6 +213,18 @@ function delete_(id) {
     for (let i = v.length - 1; i >= 1; i--) if (String(v[i][0]) === id) sh.deleteRow(i + 1);
     return { ok: true };
   } finally { lock.releaseLock(); }
+}
+
+function verify_(id) {
+  const f = findDraw_(id);
+  if (!f) return { error: 'notfound' };
+  const n = drawObj_(f.r).names.length, c = cycleOf_(f.r);
+  const okLen = c.length === n;
+  const recv = new Set(c);
+  const once = okLen && recv.size === n && c.every(v => v >= 0 && v < n);
+  const noSelf = c.every((v, i) => v !== i);
+  let steps = 0, k = 0; do { k = c[k]; steps++; } while (k !== 0 && steps <= n);
+  return { ok: true, n: n, checks: { everyoneGives: okLen, everyoneReceivesOnce: once, nobodySelf: noSelf, singleCircle: once && steps === n } };
 }
 
 /* À lancer une fois depuis l'éditeur pour autoriser l'accès à Google Sheets */

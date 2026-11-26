@@ -11,6 +11,12 @@ Générateur de Secret Santa, ambiance Noël, avec espace organisateur et liens 
 2. Chaque participant touche son prénom, confirme, et ouvre son paquet.
 3. L'organisateur suit qui a découvert son prénom (jamais qui offre à qui), peut réinitialiser un participant ou supprimer un tirage.
 
+## Deux types de liens
+- **Lien de groupe** : un seul lien dans la conversation, chacun touche son prénom (une seule fois par prénom).
+- **Lien par personne** (anti-triche) : chacun reçoit en privé un lien du type `/noel-cpe/lea-x7k2m`, qui ne fonctionne que pour lui.
+
+Le bouton **Vérifier le tirage** de l'espace organisateur contrôle, côté serveur, que chacun offre et reçoit exactement un cadeau, sans révéler qui offre à qui.
+
 ## Règles garanties par le serveur
 - Personne ne se tire soi-même, chaque prénom n'est tiré qu'une fois (un seul grand cercle, algorithme de Sattolo).
 - Un prénom ne peut être utilisé qu'une seule fois, quel que soit l'appareil.
