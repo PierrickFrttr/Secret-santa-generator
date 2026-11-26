@@ -146,6 +146,48 @@ footer{text-align:center;font-size:14px;color:var(--muted);margin-top:-36px}
 footer button{background:none;color:var(--night2);font-weight:700;text-decoration:underline;text-underline-offset:3px;min-height:44px;padding:0 8px}
 @media(max-width:520px){.steps li span{display:none}.tagrow{gap:26px 10px}.tag{min-width:96px}.tag .hand{font-size:23px}}
 @media(prefers-reduced-motion:reduce){.flake,.st,.bulb,.tagwrap,.gift{animation:none!important}.lid,.result{transition:none}}
+
+/* ---- organisateur & états ---- */
+.card.wide{max-width:920px}
+.toolbar{display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:center;margin-bottom:6px}
+.toolbar h2{text-align:left}
+.toolbar .row{margin:0}
+.mini{min-height:40px;padding:8px 14px;font-size:15px;border-radius:12px}
+.panel,.draw{background:#fff;border:1.5px solid var(--line);border-radius:22px;padding:clamp(18px,3vw,26px);margin-top:18px}
+.panel h3,.draw h3{font-family:Fraunces,Georgia,serif;font-weight:600;font-size:26px;line-height:1.1;margin:0;color:var(--night2);overflow-wrap:anywhere}
+.drawhead{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px 16px;align-items:flex-start}
+.drawhead .pills{justify-content:flex-start;margin:8px 0 0}
+.prog{min-width:180px;flex:0 1 240px}
+.prog p{margin:0 0 6px;font-weight:700;font-size:15px;color:var(--night2);text-align:right}
+.bar{height:10px;background:#efe7d8;border-radius:99px;overflow:hidden}
+.bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--red),var(--gold));transition:width .6s}
+.people{list-style:none;padding:0;margin:16px 0 0;display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,240px),1fr));gap:8px}
+.people li{text-align:left;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 8px 8px 14px;border-radius:14px;background:#faf6ee;min-height:52px}
+.people .nm{font-weight:700;overflow-wrap:anywhere}
+.people li .mini{min-height:36px;padding:6px 10px;font-size:13px;flex:none}
+.people small{display:block;font-weight:500;font-size:13px;color:var(--muted)}
+.people .done small{color:#1f7a4d}
+.people .done .nm::before{content:"✓ ";color:#1f7a4d}
+.link-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;align-items:stretch}
+.link-row .linkbox{flex:1 1 320px;margin:0}
+.link-row .btn{min-height:58px}
+.foot-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:10px;margin-top:16px;align-items:center}
+.ghost{background:none;color:var(--muted);font-weight:700;text-decoration:underline;text-underline-offset:3px;min-height:40px;padding:6px 8px}
+.ghost:hover{color:var(--red)}
+.ask-inline{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-weight:700;color:var(--red2)}
+.slugline{font-size:14px;color:var(--muted);margin:8px 0 0;overflow-wrap:anywhere}
+.slugline b{color:var(--night2)}
+.loading{text-align:center;color:var(--muted);padding:40px 0;font-weight:500}
+.loading::before{content:"";display:block;width:34px;height:34px;margin:0 auto 12px;border-radius:50%;border:4px solid #efe7d8;border-top-color:var(--red);animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.note-box{background:#f5eee1;border-radius:16px;padding:14px 18px;color:#55605a;font-size:15px;margin-top:18px}
+.err-box{background:#fde8ea;color:var(--red2);border-radius:14px;padding:12px 16px;font-weight:700;margin-top:14px}
+.login{max-width:420px;margin:0 auto}
+.login .btn{width:100%;margin-top:16px}
+.login label{margin-top:14px}
+.empty-state{text-align:center;padding:30px 10px 10px;color:var(--muted)}
+.taken-note{display:block;font-family:Outfit,system-ui,sans-serif;font-size:12px;font-weight:700;margin-top:2px;opacity:.9}
+@media(max-width:600px){.toolbar h2{width:100%;text-align:center}.toolbar .row{width:100%;justify-content:center}.prog{flex-basis:100%}.prog p{text-align:left}}
 </style>
 </head>
 <body>
@@ -155,7 +197,7 @@ footer button{background:none;color:var(--night2);font-weight:700;text-decoratio
 
 <header>
   <h1>Secret <i>Santa</i></h1>
-  <p id="sub">Une liste de prénoms, un seul lien à partager : chacun découvre en secret à qui il offre un cadeau.</p>
+  <p id="sub">Une liste de prénoms, un lien court à partager : chacun découvre en secret à qui il offre un cadeau.</p>
 </header>
 
 <svg class="hills" viewBox="0 0 1200 210" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
@@ -187,165 +229,316 @@ footer button{background:none;color:var(--night2);font-weight:700;text-decoratio
 
 <script>
 {
-const A = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+const API = 'https://script.google.com/macros/s/AKfycbx4bNPRGJQ-YUghsLQ1pFR1GnQNcqA2OmflAcAU5kJOA4QhFtrylOmCkS0yPDzWsYkQZg/exec';
 const app = document.getElementById('app'), foot = document.getElementById('foot'), sub = document.getElementById('sub');
-const SUB = sub.textContent;
-const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const store = {get(k){try{return localStorage.getItem(k)}catch(e){return null}}, set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
-const rnd = n => {const a = new Uint32Array(1); crypto.getRandomValues(a); return a[0] % n};
+const card = document.querySelector('.card');
+const SUB = 'Une liste de prénoms, un lien court à partager : chacun découvre en secret à qui il offre un cadeau.';
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const store = {get(k){try{return localStorage.getItem(k)}catch(e){return null}}, set(k,v){try{localStorage.setItem(k,v)}catch(e){}}, del(k){try{localStorage.removeItem(k)}catch(e){}}};
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const pageUrl = () => location.href.split('#')[0];
-const clearHash = () => { try { history.replaceState(null, '', pageUrl()); } catch (e) { location.hash = ''; } };
+const rnd = n => {const a = new Uint32Array(1); crypto.getRandomValues(a); return a[0] % n};
 
-/* ---------- le tirage, chiffré dans le lien ---------- */
-function stream(seed){let k = seed >>> 0 || 1; return () => {k ^= k << 13; k ^= k >>> 17; k ^= k << 5; return (k >>> 0) & 255}}
-function encode(obj){
-  const raw = new TextEncoder().encode(JSON.stringify(obj));
-  const s0 = rnd(256), s1 = rnd(256), ks = stream((s0 << 8 | s1) * 2654435761);
-  const bytes = [1, s0, s1, ...Array.from(raw, b => b ^ ks())];
-  let n = 0n; for (const b of bytes) n = n * 256n + BigInt(b);
-  let s = ''; while (n > 0n) { s = A[Number(n % 62n)] + s; n /= 62n; }
-  return 's' + s;
+/* ---------- adresses ---------- */
+const onGH = location.hostname.endsWith('github.io');
+const ROOT = (() => { const p = location.pathname.split('/').filter(Boolean); return onGH && p.length ? '/' + p[0] + '/' : '/'; })();
+const local = location.protocol === 'file:';
+function route(){
+  const q = new URLSearchParams(location.search);
+  if (q.get('t')) return {slug: q.get('t')};
+  if (q.has('admin')) return {admin: true};
+  if (location.hash.length > 20) return {legacy: location.hash.slice(1)};
+  if (local) return {home: true};
+  const rest = location.pathname.slice(ROOT.length).split('/').filter(Boolean)[0] || '';
+  if (!rest || rest === 'index.html' || rest === '404.html') return {home: true};
+  if (rest === 'admin') return {admin: true};
+  return {slug: decodeURIComponent(rest).toLowerCase()};
 }
-function decode(code){
-  if (!/^s[0-9a-zA-Z]+$/.test(code)) return null;
-  let n = 0n; for (const c of code.slice(1)) n = n * 62n + BigInt(A.indexOf(c));
-  const bytes = []; while (n > 0n) { bytes.unshift(Number(n % 256n)); n /= 256n; }
-  if (bytes[0] !== 1 || bytes.length < 4) return null;
-  const ks = stream((bytes[1] << 8 | bytes[2]) * 2654435761);
-  try {
-    const o = JSON.parse(new TextDecoder().decode(Uint8Array.from(bytes.slice(3), b => b ^ ks())));
-    if (!Array.isArray(o.n) || !Array.isArray(o.c) || o.n.length !== o.c.length || o.n.length < 3) return null;
-    return o;
-  } catch (e) { return null; }
+function go(path){
+  const url = local ? (path === 'admin' ? '?admin' : path ? '?t=' + path : location.pathname) : ROOT + path;
+  history.pushState(null, '', url); render(); window.scrollTo({top: 0});
 }
-/* Sattolo : un seul grand cercle — personne ne se tire soi-même, chaque prénom n'est tiré qu'une fois */
-function draw(n){const a = [...Array(n).keys()]; for (let i = n - 1; i > 0; i--) { const j = rnd(i); [a[i], a[j]] = [a[j], a[i]]; } return a}
+const linkFor = id => local ? location.href.split('?')[0] + '?t=' + id : location.origin + ROOT + id;
+window.addEventListener('popstate', () => render());
 
-const steps = k => `<ol class="steps">${['Participants','Partage','Découverte'].map((s,i) => `<li class="${i <= k ? 'on' : ''}"><b>${i+1}</b><span>${s}</span></li>`).join('')}</ol>`;
+/* ---------- serveur ---------- */
+async function api(action, data = {}){
+  const r = await fetch(API, {method: 'POST', body: JSON.stringify({action, ...data})});
+  if (!r.ok) throw new Error('net');
+  return r.json();
+}
+const loading = txt => { app.innerHTML = `<div class="loading">${esc(txt || 'Chargement…')}</div>`; };
+const fail = (txt, retry) => {
+  app.innerHTML = `<h2>Oups</h2><p class="lead">${esc(txt)}</p>${retry ? '<div class="row"><button class="btn" id="rt" type="button">Réessayer</button></div>' : ''}`;
+  if (retry) app.querySelector('#rt').onclick = retry;
+};
+const fmt = iso => { const d = new Date(iso); return isNaN(d) ? '' : d.toLocaleString('fr-FR', {day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'}); };
+const pillsOf = d => [d.budget && '💶 Budget ' + d.budget, d.date && '📅 ' + d.date].filter(Boolean).map(m => `<span>${esc(m)}</span>`).join('');
+async function copy(btn, text){
+  try { await navigator.clipboard.writeText(text); btn.textContent = 'Copié ✓'; }
+  catch (x) { const i = document.createElement('textarea'); i.value = text; document.body.append(i); i.select(); try { document.execCommand('copy'); btn.textContent = 'Copié ✓'; } catch (y) { btn.textContent = 'Échec'; } i.remove(); }
+  setTimeout(() => btn.textContent = 'Copier', 1800);
+}
+const waMsg = (d, url) => `🎅 Secret Santa${d.title ? ' — ' + d.title : ''} ! Clique sur ton prénom pour découvrir à qui tu offres un cadeau : ${url}`;
+
+/* ---------- accueil ---------- */
+function home(){
+  card.classList.remove('wide'); sub.textContent = SUB; foot.innerHTML = '';
+  app.innerHTML = `
+    <h2>Bienvenue sous le sapin</h2>
+    <p class="lead">Tu as reçu un lien de Secret Santa ? Ouvre-le directement : ton prénom t’attend.</p>
+    <ol class="notes" style="margin-top:0">
+      <li>L’organisateur crée le tirage et partage un lien court.</li>
+      <li>Chacun touche son prénom, une seule fois.</li>
+      <li>On déballe le paquet : voilà la personne à gâter.</li>
+    </ol>
+    <div class="row"><button class="btn green" id="adm" type="button">Espace organisateur</button></div>`;
+  app.querySelector('#adm').onclick = () => go('admin');
+}
 
 /* ---------- organisateur ---------- */
-let names = [];
-try { names = JSON.parse(store.get('ss:draft') || '[]').filter(x => typeof x === 'string'); } catch (e) { names = []; }
-const saveDraft = () => store.set('ss:draft', JSON.stringify(names));
-
-function organizer(){
-  sub.textContent = SUB; foot.innerHTML = '';
+let PASS = store.get('ss:pass') || '';
+async function admin(){
+  card.classList.add('wide'); sub.textContent = 'Espace organisateur'; foot.innerHTML = '<button type="button" id="hm">Retour à l’accueil</button>';
+  foot.querySelector('#hm').onclick = () => go('');
+  loading();
+  try {
+    if (PASS) { const r = await api('login', {pass: PASS}); if (r.ok) return dashboard(); PASS = ''; store.del('ss:pass'); if (r.error === 'locked') return loginForm('Trop d’essais. Réessaie dans 10 minutes.'); }
+    const s = await api('status');
+    s.setup ? loginForm() : setupForm();
+  } catch (e) { fail('Impossible de joindre le serveur. Vérifie ta connexion.', admin); }
+}
+function setupForm(){
   app.innerHTML = `
-    ${steps(0)}
-    <h2>Qui participe ?</h2>
-    <p class="lead">Ajoutez au moins trois prénoms. Le tirage est fait une seule fois, puis scellé dans le lien.</p>
-    <label for="nm">Ajouter des prénoms</label>
-    <div class="add"><input id="nm" placeholder="Ex. Léa, Tom, Inès…" maxlength="300" autocomplete="off" enterkeyhint="done"><button class="btn green" id="addb" type="button">Ajouter</button></div>
-    <p class="hint">Entrée pour valider. Vous pouvez coller toute une liste séparée par des virgules.</p>
-    <p class="err" id="err"></p>
-    <div class="tagrow string" id="chips"></div>
-    <div class="count" id="count"></div>
-    <div class="grid" style="margin-top:26px">
-      <div><label for="ev">Événement</label><input id="ev" placeholder="Noël en famille" maxlength="50"></div>
-      <div><label for="bu">Budget</label><input id="bu" placeholder="20 €" maxlength="20"></div>
-      <div><label for="da">Date d’échange</label><input id="da" placeholder="24 décembre" maxlength="40"></div>
-    </div>
-    <button class="btn big" id="go" type="button">Lancer le tirage</button>`;
-  const nm = app.querySelector('#nm'), err = app.querySelector('#err');
-  for (const id of ['ev','bu','da']) { const el = app.querySelector('#' + id); el.value = store.get('ss:' + id) || ''; el.oninput = () => store.set('ss:' + id, el.value); }
-  const paint = () => {
-    const row = app.querySelector('#chips');
-    row.innerHTML = names.length ? names.map((n,i) => `<span class="tagwrap"><span class="tag"><span class="hand">${esc(n)}</span><button class="x" type="button" data-i="${i}" aria-label="Retirer ${esc(n)}">×</button></span></span>`).join('')
-      : '<span class="empty">Les étiquettes apparaîtront ici</span>';
-    app.querySelector('#count').textContent = names.length ? `${names.length} participant${names.length > 1 ? 's' : ''}${names.length < 3 ? ' — encore ' + (3 - names.length) + ' minimum' : ''}` : '';
-    app.querySelector('#go').disabled = names.length < 3;
+    <form class="login" id="f">
+      <h2>Ton espace organisateur</h2>
+      <p class="lead">Choisis un mot de passe (8 caractères minimum). Il protégera tous tes tirages.</p>
+      <label for="p1">Mot de passe</label><input id="p1" type="password" autocomplete="new-password" minlength="8" required>
+      <label for="p2">Confirmer</label><input id="p2" type="password" autocomplete="new-password" minlength="8" required>
+      <p class="err" id="err"></p>
+      <button class="btn" type="submit">Créer mon espace</button>
+    </form>`;
+  const f = app.querySelector('#f'), err = app.querySelector('#err');
+  f.onsubmit = async e => {
+    e.preventDefault();
+    const a = f.querySelector('#p1').value, b = f.querySelector('#p2').value;
+    if (a.length < 8) return err.textContent = '8 caractères minimum.';
+    if (a !== b) return err.textContent = 'Les deux mots de passe sont différents.';
+    const bt = f.querySelector('button'); bt.disabled = true; bt.textContent = 'Création…';
+    try { const r = await api('setup', {pass: a}); if (!r.ok) throw new Error(r.error); PASS = a; store.set('ss:pass', a); dashboard(); }
+    catch (x) { bt.disabled = false; bt.textContent = 'Créer mon espace'; err.textContent = x.message === 'already' ? 'Un mot de passe existe déjà.' : 'Erreur, réessaie.'; }
   };
-  const add = () => {
-    const parts = nm.value.split(/[,;\n]+/).map(s => s.trim().replace(/\s+/g, ' ')).filter(Boolean);
-    const dup = [];
-    for (const p of parts) {
-      if (names.some(x => x.toLowerCase() === p.toLowerCase())) dup.push(p);
-      else if (names.length < 60) names.push(p.slice(0, 30));
-    }
-    err.textContent = dup.length ? `Déjà dans la liste : ${dup.join(', ')}. Ajoutez une initiale pour les distinguer.` : '';
-    nm.value = ''; saveDraft(); paint(); nm.focus();
+}
+function loginForm(msg){
+  app.innerHTML = `
+    <form class="login" id="f">
+      <h2>Connexion</h2>
+      <p class="lead">Entre ton mot de passe organisateur.</p>
+      <label for="pw">Mot de passe</label><input id="pw" type="password" autocomplete="current-password" required>
+      <p class="err" id="err">${esc(msg || '')}</p>
+      <button class="btn" type="submit">Se connecter</button>
+    </form>`;
+  const f = app.querySelector('#f'), err = app.querySelector('#err');
+  f.querySelector('#pw').focus();
+  f.onsubmit = async e => {
+    e.preventDefault();
+    const p = f.querySelector('#pw').value, bt = f.querySelector('button');
+    bt.disabled = true; bt.textContent = 'Connexion…';
+    try {
+      const r = await api('login', {pass: p});
+      if (r.ok) { PASS = p; store.set('ss:pass', p); return dashboard(); }
+      err.textContent = r.error === 'locked' ? 'Trop d’essais. Réessaie dans 10 minutes.' : 'Mot de passe incorrect.';
+    } catch (x) { err.textContent = 'Impossible de joindre le serveur.'; }
+    bt.disabled = false; bt.textContent = 'Se connecter';
   };
-  nm.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); add(); } });
-  app.querySelector('#addb').onclick = add;
-  app.querySelector('#chips').onclick = e => { const b = e.target.closest('button[data-i]'); if (!b) return; names.splice(+b.dataset.i, 1); saveDraft(); paint(); };
-  app.querySelector('#go').onclick = () => {
-    if (names.length < 3) { err.textContent = 'Il faut au moins 3 participants.'; return; }
-    const obj = {v:1, t:app.querySelector('#ev').value.trim(), b:app.querySelector('#bu').value.trim(), d:app.querySelector('#da').value.trim(), n:[...names], c:draw(names.length)};
-    created(encode(obj), obj);
-  };
-  paint();
 }
 
-function created(code, obj){
-  try { history.replaceState(null, '', '#' + code); } catch (e) {}
-  const url = pageUrl() + '#' + code;
-  const msg = `🎅 Secret Santa${obj.t ? ' — ' + obj.t : ''} ! Clique sur ton prénom pour découvrir à qui tu offres un cadeau : ${url}`;
+let DRAWS = [], creating = false;
+async function dashboard(){
+  loading('Chargement de tes tirages…');
+  try {
+    const r = await api('list', {pass: PASS});
+    if (r.error === 'auth') { PASS = ''; store.del('ss:pass'); return loginForm('Reconnecte-toi.'); }
+    DRAWS = r.draws || [];
+    paintDash();
+  } catch (e) { fail('Impossible de charger les tirages.', dashboard); }
+}
+function paintDash(){
   app.innerHTML = `
-    ${steps(1)}
-    <div class="done">
-      <svg class="seal" viewBox="0 0 84 84" aria-hidden="true"><circle cx="42" cy="42" r="38" fill="#c8202f"/><circle cx="42" cy="42" r="30" fill="none" stroke="#8f1420" stroke-width="2" stroke-dasharray="3 4"/><path d="M42 22 L47 36 L62 36 L50 45 L54 60 L42 51 L30 60 L34 45 L22 36 L37 36Z" fill="#f2c35b"/></svg>
-      <h2>Le tirage est scellé</h2>
-      <p class="lead">${obj.n.length} participants, un seul grand cercle de cadeaux. Personne ne connaît le résultat, pas même vous.</p>
+    <div class="toolbar">
+      <h2>Mes tirages</h2>
+      <div class="row">
+        <button class="soft mini" id="rf" type="button">Actualiser</button>
+        <button class="btn mini" id="nw" type="button">Nouveau tirage</button>
+        <button class="ghost" id="lo" type="button">Se déconnecter</button>
+      </div>
     </div>
-    <label for="lk">Le lien à envoyer au groupe</label>
-    <div class="linkbox"><input id="lk" readonly value="${esc(url)}"><button class="btn" id="cp" type="button">Copier</button></div>
-    <div class="share">
-      <a class="btn wa" id="wa" href="https://wa.me/?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener">Envoyer sur WhatsApp</a>
-      ${navigator.share ? '<button class="soft" id="sh" type="button">Partager…</button>' : ''}
+    <div id="create"></div>
+    <div id="list"></div>`;
+  app.querySelector('#rf').onclick = dashboard;
+  app.querySelector('#nw').onclick = () => { creating = true; createForm(); };
+  app.querySelector('#lo').onclick = () => { PASS = ''; store.del('ss:pass'); loginForm(); };
+  if (creating || !DRAWS.length) createForm();
+  const list = app.querySelector('#list');
+  if (!DRAWS.length) list.innerHTML = '<p class="empty-state">Aucun tirage pour l’instant. Crée le premier ci-dessus.</p>';
+  else list.innerHTML = DRAWS.map(drawHTML).join('');
+  list.onclick = onListClick;
+}
+function drawHTML(d, k){
+  const n = d.names.length, done = new Map(d.claimed.map(c => [c.idx, c.at]));
+  const url = linkFor(d.id);
+  return `
+  <article class="draw" data-k="${k}">
+    <div class="drawhead">
+      <div><h3>${esc(d.title || d.id)}</h3><div class="pills">${pillsOf(d)}<span>Créé le ${esc(fmt(d.created))}</span></div></div>
+      <div class="prog"><p>${done.size} / ${n} ont découvert</p><div class="bar"><i style="width:${Math.round(done.size / n * 100)}%"></i></div></div>
     </div>
-    <ol class="notes">
-      <li>Chacun ouvre le lien, touche son prénom, confirme, puis déballe son cadeau.</li>
-      <li>Retenter ne sert à rien : le résultat est fixé dans le lien.</li>
-      <li>Ne relancez pas de tirage après l’envoi : cela crée un nouveau lien.</li>
-    </ol>
-    <div class="row"><button class="soft" id="see" type="button">Voir la page des participants</button><button class="soft" id="again" type="button">Modifier la liste</button></div>`;
-  const lk = app.querySelector('#lk');
-  lk.onclick = () => lk.select();
-  app.querySelector('#cp').onclick = async e => {
-    const b = e.currentTarget;
-    try { await navigator.clipboard.writeText(lk.value); b.textContent = 'Copié ✓'; }
-    catch (x) { lk.select(); try { document.execCommand('copy'); b.textContent = 'Copié ✓'; } catch (y) { b.textContent = 'Ctrl+C'; } }
-    setTimeout(() => b.textContent = 'Copier', 1800);
+    <div class="link-row">
+      <div class="linkbox"><input readonly value="${esc(url)}" aria-label="Lien du tirage"><button class="btn" data-a="copy" type="button">Copier</button></div>
+      <a class="btn wa" href="https://wa.me/?text=${encodeURIComponent(waMsg(d, url))}" target="_blank" rel="noopener">WhatsApp</a>
+    </div>
+    <ul class="people">${d.names.map((nm, i) => done.has(i)
+      ? `<li class="done"><span><span class="nm">${esc(nm)}</span><small>Découvert le ${esc(fmt(done.get(i)))}</small></span><button class="soft mini" data-a="reset" data-i="${i}" type="button">Réinitialiser</button></li>`
+      : `<li><span><span class="nm">${esc(nm)}</span><small>En attente</small></span></li>`).join('')}</ul>
+    <div class="foot-actions" data-slot><button class="ghost" data-a="del" type="button">Supprimer ce tirage</button></div>
+  </article>`;
+}
+async function onListClick(e){
+  const b = e.target.closest('button[data-a]'); if (!b) return;
+  const art = b.closest('.draw'), d = DRAWS[+art.dataset.k];
+  const a = b.dataset.a;
+  if (a === 'copy') return copy(b, art.querySelector('input').value);
+  if (a === 'reset') {
+    const li = b.closest('li'), i = +b.dataset.i;
+    if (!b.dataset.sure) { b.dataset.sure = 1; b.textContent = 'Confirmer ?'; b.classList.replace('soft', 'btn'); setTimeout(() => { if (b.isConnected) { delete b.dataset.sure; b.textContent = 'Réinitialiser'; b.classList.replace('btn', 'soft'); } }, 4000); return; }
+    b.disabled = true; b.textContent = '…';
+    try { const r = await api('reset', {pass: PASS, id: d.id, idx: i}); if (!r.ok) throw 0; d.claimed = d.claimed.filter(c => c.idx !== i); paintDash(); }
+    catch (x) { b.disabled = false; b.textContent = 'Erreur'; }
+    return;
+  }
+  if (a === 'del') {
+    const slot = b.parentElement;
+    slot.innerHTML = `<span class="ask-inline">Supprimer définitivement « ${esc(d.title || d.id)} » ? Le lien ne marchera plus.</span><button class="soft mini" data-a="nodel" type="button">Annuler</button><button class="btn mini" data-a="yesdel" type="button">Supprimer</button>`;
+    return;
+  }
+  if (a === 'nodel') { b.parentElement.innerHTML = '<button class="ghost" data-a="del" type="button">Supprimer ce tirage</button>'; return; }
+  if (a === 'yesdel') {
+    b.disabled = true; b.textContent = 'Suppression…';
+    try { const r = await api('delete', {pass: PASS, id: d.id}); if (!r.ok) throw 0; DRAWS = DRAWS.filter(x => x !== d); paintDash(); }
+    catch (x) { b.disabled = false; b.textContent = 'Erreur, réessayer'; }
+  }
+}
+
+let draft = [];
+try { draft = JSON.parse(store.get('ss:draft') || '[]').filter(x => typeof x === 'string'); } catch (e) { draft = []; }
+const slugify = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 32).replace(/-+$/, '');
+function createForm(){
+  const box = app.querySelector('#create');
+  box.innerHTML = `
+    <section class="panel">
+      <h3>Nouveau tirage</h3>
+      <div class="grid" style="margin-top:18px">
+        <div><label for="ev">Événement</label><input id="ev" placeholder="Noël CPE" maxlength="50"></div>
+        <div><label for="bu">Budget</label><input id="bu" placeholder="20 €" maxlength="20"></div>
+        <div><label for="da">Date d’échange</label><input id="da" placeholder="19 décembre" maxlength="40"></div>
+      </div>
+      <label for="sl">Fin du lien</label>
+      <input id="sl" placeholder="noel-cpe" maxlength="32" autocomplete="off" spellcheck="false">
+      <p class="slugline" id="slp"></p>
+      <label for="nm" style="margin-top:18px">Participants</label>
+      <div class="add"><input id="nm" placeholder="Ex. Léa, Tom, Inès…" maxlength="400" autocomplete="off" enterkeyhint="done"><button class="btn green" id="addb" type="button">Ajouter</button></div>
+      <p class="hint">Entrée pour valider. Tu peux coller toute une liste séparée par des virgules.</p>
+      <p class="err" id="err"></p>
+      <div class="tagrow" id="chips"></div>
+      <div class="count" id="count"></div>
+      <div class="row">${DRAWS.length ? '<button class="soft" id="cx" type="button">Annuler</button>' : ''}<button class="btn" id="go" type="button">Lancer le tirage</button></div>
+    </section>`;
+  const $ = s => box.querySelector(s), nm = $('#nm'), err = $('#err'), sl = $('#sl'), ev = $('#ev');
+  let slugTouched = false;
+  const paintSlug = () => { const v = slugify(slugTouched ? sl.value : ev.value) || 'tirage'; $('#slp').innerHTML = `Lien : <b>${esc(linkFor(v))}</b>`; };
+  ev.oninput = paintSlug; sl.oninput = () => { slugTouched = !!sl.value.trim(); paintSlug(); };
+  const paint = () => {
+    $('#chips').innerHTML = draft.length ? draft.map((n, i) => `<span class="tagwrap"><span class="tag"><span class="hand">${esc(n)}</span><button class="x" type="button" data-i="${i}" aria-label="Retirer ${esc(n)}">×</button></span></span>`).join('') : '<span class="empty">Les étiquettes apparaîtront ici</span>';
+    $('#count').textContent = draft.length ? `${draft.length} participant${draft.length > 1 ? 's' : ''}${draft.length < 3 ? ' — encore ' + (3 - draft.length) + ' minimum' : ''}` : '';
+    $('#go').disabled = draft.length < 3;
+    store.set('ss:draft', JSON.stringify(draft));
   };
-  const sh = app.querySelector('#sh');
-  if (sh) sh.onclick = () => navigator.share({title:'Secret Santa', text:msg.replace(url, '').trim(), url}).catch(() => {});
-  app.querySelector('#see').onclick = () => { participant(code, decode(code)); window.scrollTo({top:0}); };
-  app.querySelector('#again').onclick = () => { clearHash(); organizer(); };
+  const add = () => {
+    const parts = nm.value.split(/[,;\n]+/).map(s => s.trim().replace(/\s+/g, ' ')).filter(Boolean), dup = [];
+    for (const p of parts) { if (draft.some(x => x.toLowerCase() === p.toLowerCase())) dup.push(p); else if (draft.length < 60) draft.push(p.slice(0, 30)); }
+    err.textContent = dup.length ? `Déjà dans la liste : ${dup.join(', ')}. Ajoute une initiale pour les distinguer.` : '';
+    nm.value = ''; paint(); nm.focus();
+  };
+  nm.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); add(); } });
+  $('#addb').onclick = add;
+  $('#chips').onclick = e => { const b = e.target.closest('button[data-i]'); if (b) { draft.splice(+b.dataset.i, 1); paint(); } };
+  if ($('#cx')) $('#cx').onclick = () => { creating = false; box.innerHTML = ''; };
+  $('#go').onclick = async () => {
+    if (nm.value.trim()) add();
+    if (draft.length < 3) return err.textContent = 'Il faut au moins 3 participants.';
+    const bt = $('#go'); bt.disabled = true; bt.textContent = 'Tirage en cours…';
+    try {
+      const r = await api('create', {pass: PASS, title: ev.value, budget: $('#bu').value, date: $('#da').value, slug: slugTouched ? sl.value : '', names: draft});
+      if (!r.ok) throw new Error(r.error);
+      draft = []; store.set('ss:draft', '[]'); creating = false;
+      await dashboard();
+      const first = app.querySelector('.draw'); if (first) { first.scrollIntoView({behavior: reduced ? 'auto' : 'smooth', block: 'center'}); }
+    } catch (x) {
+      bt.disabled = false; bt.textContent = 'Lancer le tirage';
+      err.textContent = ({few: 'Il faut au moins 3 participants.', dup: 'Deux prénoms sont identiques.', many: '60 participants maximum.', auth: 'Session expirée, reconnecte-toi.'})[x.message] || 'Erreur, réessaie.';
+    }
+  };
+  paint(); paintSlug();
 }
 
 /* ---------- participant ---------- */
-function participant(code, o){
-  const key = 'ss:me:' + code, raw = store.get(key);
-  const me = raw !== null && o.n[+raw] !== undefined ? +raw : null;
-  sub.textContent = o.t || 'Un tirage vous attend sous le sapin.';
-  foot.innerHTML = '<button type="button" id="own">Organiser mon propre Secret Santa</button>';
-  foot.querySelector('#own').onclick = () => { clearHash(); organizer(); };
-  const pills = [o.b && '💶 Budget ' + o.b, o.d && '📅 ' + o.d].filter(Boolean).map(m => `<span>${esc(m)}</span>`).join('');
-  if (me !== null) return reveal(o, me, pills, false);
+async function participant(slug){
+  card.classList.remove('wide');
+  foot.innerHTML = '';
+  loading('On cherche ton tirage sous le sapin…');
+  let d;
+  try { const r = await api('get', {id: slug}); if (r.error === 'notfound') { sub.textContent = SUB; return fail('Ce tirage n’existe pas ou a été supprimé. Vérifie le lien reçu.'); } d = r.draw; }
+  catch (e) { return fail('Impossible de joindre le serveur. Vérifie ta connexion.', () => participant(slug)); }
+  sub.textContent = d.title || 'Un tirage vous attend sous le sapin.';
+  const key = 'ss:r:' + slug;
+  let mine = null; try { mine = JSON.parse(store.get(key) || 'null'); } catch (e) {}
+  if (mine && d.names[mine.idx] !== undefined && d.claimed.includes(mine.idx)) return reveal(d.names[mine.idx], mine.target, pillsOf(d), false);
+  if (mine) store.del(key);
+  pick(d, key);
+}
+function pick(d, key, msg){
+  const pills = pillsOf(d), claimed = new Set(d.claimed);
   app.innerHTML = `
     <h2>Qui es-tu ?</h2>
     <p class="lead">Touche ton prénom. Une seule identification par personne : pas de seconde chance.</p>
     ${pills ? `<div class="pills">${pills}</div>` : ''}
-    <div class="tagrow string">${o.n.map((n,i) => `<span class="tagwrap"><button class="tag" type="button" data-i="${i}"><span class="hand">${esc(n)}</span></button></span>`).join('')}</div>`;
-  app.querySelector('.tagrow').onclick = e => { const b = e.target.closest('.tag'); if (b) ask(code, o, +b.dataset.i, pills); };
+    ${msg ? `<div class="err-box">${esc(msg)}</div>` : ''}
+    <div class="tagrow">${d.names.map((n, i) => `<span class="tagwrap"><button class="tag" type="button" data-i="${i}" ${claimed.has(i) ? 'disabled aria-label="' + esc(n) + ', déjà découvert"' : ''}><span class="hand">${esc(n)}${claimed.has(i) ? '<span class="taken-note">déjà découvert</span>' : ''}</span></button></span>`).join('')}</div>
+    <p class="count" style="margin-top:14px">${claimed.size} / ${d.names.length} ont déjà découvert leur prénom</p>`;
+  app.querySelector('.tagrow').onclick = e => { const b = e.target.closest('.tag'); if (b && !b.disabled) ask(d, key, +b.dataset.i); };
 }
-function ask(code, o, i, pills){
+function ask(d, key, i){
   app.innerHTML = `
     <div class="ask">
       <p class="lead" style="margin-bottom:0">Tu confirmes être</p>
-      <p class="hand">${esc(o.n[i])} ?</p>
+      <p class="hand">${esc(d.names[i])} ?</p>
       <p class="hint">Ce choix sera définitif.</p>
       <div class="row"><button class="soft" id="no" type="button">Non, retour</button><button class="btn" id="yes" type="button">Oui, c’est moi</button></div>
     </div>`;
-  app.querySelector('#no').onclick = () => participant(code, o);
-  app.querySelector('#yes').onclick = () => { store.set('ss:me:' + code, String(i)); reveal(o, i, pills, true); };
-  app.querySelector('#yes').focus();
+  app.querySelector('#no').onclick = () => pick(d, key);
+  const yes = app.querySelector('#yes'); yes.focus();
+  yes.onclick = async () => {
+    yes.disabled = true; yes.textContent = 'Un instant…';
+    try {
+      const r = await api('claim', {id: d.id, idx: i});
+      if (r.ok) { store.set(key, JSON.stringify({idx: i, target: r.target})); return reveal(d.names[i], r.target, pillsOf(d), true); }
+      if (r.error === 'taken') { if (!d.claimed.includes(i)) d.claimed.push(i); return pick(d, key, `Le prénom ${d.names[i]} a déjà été utilisé. Si c’est bien toi, demande à l’organisateur de le réinitialiser.`); }
+      throw 0;
+    } catch (x) { yes.disabled = false; yes.textContent = 'Réessayer'; }
+  };
 }
-function reveal(o, i, pills, fresh){
-  const target = o.n[o.c[i]];
+function reveal(me, target, pills, fresh){
   const cols = ['#f2c35b','#c8202f','#ffffff','#1f7a5c','#f7d98c'];
-  const bits = Array.from({length:34}, (_, k) => {
+  const bits = Array.from({length: 34}, (_, k) => {
     const a = k / 34 * Math.PI * 2, d = 90 + Math.random() * 110;
     return `<i style="background:${cols[k % 5]};--x:${(Math.cos(a) * d).toFixed(0)}px;--y:${(Math.sin(a) * d - 40).toFixed(0)}px;--r:${rnd(720)}deg;${k % 3 ? '' : 'border-radius:50%;'}"></i>`;
   }).join('');
@@ -368,10 +561,10 @@ function reveal(o, i, pills, fresh){
       <div class="burst">${bits}</div>
       <p class="tap">Touche le paquet pour l’ouvrir</p>
       <div class="result">
-        <p class="hello">${esc(o.n[i])}, tu offres un cadeau à</p>
+        <p class="hello">${esc(me)}, tu offres un cadeau à</p>
         <div class="bigtag"><span class="hand">${esc(target)}</span></div>
         ${pills ? `<div class="pills" style="margin:6px 0 0">${pills}</div>` : ''}
-        <p class="secret">Chut, c’est un secret. Tu peux revenir sur ce lien pour revoir le nom : ce sera toujours le même.</p>
+        <p class="secret">Chut, c’est un secret. Sur cet appareil, tu peux revenir sur ce lien pour revoir le nom.</p>
       </div>
     </div>`;
   if (fresh) {
@@ -381,21 +574,42 @@ function reveal(o, i, pills, fresh){
   }
 }
 
-/* ---------- routage ---------- */
-function route(){
-  const code = location.hash.slice(1);
-  if (!code) return organizer();
-  const o = decode(code);
-  if (!o) {
-    sub.textContent = SUB;
-    app.innerHTML = `<h2>Lien incomplet</h2><p class="lead">Ce lien de tirage semble coupé. Vérifiez qu’il a été copié en entier.</p><div class="row"><button class="btn" id="bk" type="button">Créer un tirage</button></div>`;
-    app.querySelector('#bk').onclick = () => { clearHash(); organizer(); };
-    return;
-  }
-  participant(code, o);
+/* ---------- anciens liens (tirage dans le lien) ---------- */
+const A62 = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+function stream(seed){let k = seed >>> 0 || 1; return () => {k ^= k << 13; k ^= k >>> 17; k ^= k << 5; return (k >>> 0) & 255}}
+function decode(code){
+  if (!/^s[0-9a-zA-Z]+$/.test(code)) return null;
+  let n = 0n; for (const c of code.slice(1)) n = n * 62n + BigInt(A62.indexOf(c));
+  const bytes = []; while (n > 0n) { bytes.unshift(Number(n % 256n)); n /= 256n; }
+  if (bytes[0] !== 1 || bytes.length < 4) return null;
+  const ks = stream((bytes[1] << 8 | bytes[2]) * 2654435761);
+  try { const o = JSON.parse(new TextDecoder().decode(Uint8Array.from(bytes.slice(3), b => b ^ ks()))); return Array.isArray(o.n) && Array.isArray(o.c) && o.n.length === o.c.length ? o : null; } catch (e) { return null; }
 }
-window.addEventListener('hashchange', route);
-route();
+function legacy(code){
+  const o = decode(code);
+  if (!o) { sub.textContent = SUB; return fail('Ce lien semble incomplet.'); }
+  card.classList.remove('wide'); foot.innerHTML = '';
+  sub.textContent = o.t || 'Un tirage vous attend sous le sapin.';
+  const key = 'ss:me:' + code, raw = store.get(key), pills = pillsOf({budget: o.b, date: o.d});
+  if (raw !== null && o.n[+raw] !== undefined) return reveal(o.n[+raw], o.n[o.c[+raw]], pills, false);
+  const d = {id: code, names: o.n, claimed: [], budget: o.b, date: o.d};
+  app.innerHTML = `<h2>Qui es-tu ?</h2><p class="lead">Touche ton prénom. Une seule identification par personne.</p>${pills ? `<div class="pills">${pills}</div>` : ''}<div class="tagrow">${o.n.map((n, i) => `<span class="tagwrap"><button class="tag" type="button" data-i="${i}"><span class="hand">${esc(n)}</span></button></span>`).join('')}</div>`;
+  app.querySelector('.tagrow').onclick = e => {
+    const b = e.target.closest('.tag'); if (!b) return; const i = +b.dataset.i;
+    app.innerHTML = `<div class="ask"><p class="lead" style="margin-bottom:0">Tu confirmes être</p><p class="hand">${esc(o.n[i])} ?</p><div class="row"><button class="soft" id="no" type="button">Non, retour</button><button class="btn" id="yes" type="button">Oui, c’est moi</button></div></div>`;
+    app.querySelector('#no').onclick = () => legacy(code);
+    app.querySelector('#yes').onclick = () => { store.set(key, String(i)); reveal(o.n[i], o.n[o.c[i]], pills, true); };
+  };
+}
+
+function render(){
+  const r = route();
+  if (r.legacy) return legacy(r.legacy);
+  if (r.admin) return admin();
+  if (r.slug) return participant(r.slug);
+  home();
+}
+render();
 
 /* ---------- décor : guirlande, étoiles, neige ---------- */
 {
