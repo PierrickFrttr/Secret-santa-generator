@@ -267,6 +267,9 @@ footer button{background:none;color:var(--night2);font-weight:700;text-decoratio
   .link-row .linkbox input{font-size:13px;text-align:center;min-height:36px}
   .link-row .linkbox .btn{width:100%}
 }
+
+.flash{background:#fff4d6;color:#6b4a0c;border-radius:14px;padding:12px 16px;font-weight:600;margin-top:14px;font-size:15px}
+.check .circ{margin:0 0 6px;font-size:14px;opacity:.85}
 </style>
 </head>
 <body>
@@ -434,7 +437,7 @@ function loginForm(msg){
   };
 }
 
-let DRAWS = [], creating = false;
+let DRAWS = [], creating = false; const FLASH = {};
 async function dashboard(){
   loading('Chargement de tes tirages…');
   try {
@@ -479,7 +482,7 @@ function drawHTML(d, k){
     let act = '';
     if (perso) {
       const pu = linkFor(d.id, tokFor(d, i));
-      act = `<span class="acts"><button class="soft mini" data-a="copy1" data-u="${esc(pu)}" type="button">Copier</button><a class="soft mini wa1" href="https://wa.me/?text=${encodeURIComponent(`🎅 ${nm}, voici ton lien Secret Santa personnel${d.title ? ' (' + d.title + ')' : ''}. Il est rien qu’à toi, ne le partage pas : ${pu}`)}" target="_blank" rel="noopener">WhatsApp</a></span>`;
+      act = `<span class="acts">${done.has(i) ? `<button class="soft mini" data-a="reset" data-i="${i}" type="button">Réinitialiser</button>` : ''}<button class="soft mini" data-a="copy1" data-u="${esc(pu)}" type="button">Copier</button><a class="soft mini wa1" href="https://wa.me/?text=${encodeURIComponent(`🎅 ${nm}, voici ton lien Secret Santa personnel${d.title ? ' (' + d.title + ')' : ''}. Il est rien qu’à toi, ne le partage pas : ${pu}`)}" target="_blank" rel="noopener">WhatsApp</a></span>`;
     } else if (done.has(i)) act = `<button class="soft mini" data-a="reset" data-i="${i}" type="button">Réinitialiser</button>`;
     return `<li class="${done.has(i) ? 'done' : ''}"><span><span class="nm">${esc(nm)}</span>${st}</span>${act}</li>`;
   };
@@ -490,6 +493,7 @@ function drawHTML(d, k){
       <div class="prog"><p>${done.size} / ${n} ${perso ? 'ont ouvert' : 'ont découvert'}</p><div class="bar"><i style="width:${Math.round(done.size / n * 100)}%"></i></div></div>
     </div>
     ${top}
+    ${FLASH[d.id] ? `<div class="flash">${esc(FLASH[d.id])}</div>` : ''}
     <ul class="people">${d.names.map(row).join('')}</ul>
     <div class="verify" data-v></div>
     <div class="foot-actions"><button class="soft mini" data-a="verify" type="button">Vérifier le tirage</button><span data-slot><button class="ghost" data-a="del" type="button">Supprimer ce tirage</button></span></div>
@@ -509,17 +513,22 @@ async function onListClick(e){
     const out = art.querySelector('[data-v]'); b.disabled = true; b.textContent = 'Vérification…';
     try {
       const r = await api('verify', {pass: PASS, id: d.id}); if (!r.ok) throw 0;
-      const c = r.checks, all = c.everyoneGives && c.everyoneReceivesOnce && c.nobodySelf && c.singleCircle;
+      const c = r.checks, all = c.everyoneGives && c.everyoneReceivesOnce && c.nobodySelf;
       const line = (ok, t) => `<li class="${ok ? 'ok' : 'ko'}">${ok ? '✓' : '✗'} ${t}</li>`;
-      out.innerHTML = `<div class="check ${all ? 'good' : 'bad'}"><b>${all ? 'Tirage valide' : 'Problème détecté'}</b><ul>${line(c.everyoneGives, `Les ${r.n} participants offrent chacun un cadeau`)}${line(c.everyoneReceivesOnce, 'Chacun reçoit exactement un cadeau, aucun doublon')}${line(c.nobodySelf, 'Personne ne se tire soi-même')}${line(c.singleCircle, 'Un seul grand cercle, sans petit groupe isolé')}</ul><small>Vérifié par le serveur, sans révéler qui offre à qui.</small></div>`;
+      out.innerHTML = `<div class="check ${all ? 'good' : 'bad'}"><b>${all ? 'Tirage valide' : 'Problème détecté'}</b><ul>${line(c.everyoneGives, `Les ${r.n} participants offrent chacun un cadeau`)}${line(c.everyoneReceivesOnce, 'Chacun reçoit exactement un cadeau, aucun doublon')}${line(c.nobodySelf, 'Personne ne se tire soi-même')}</ul><p class="circ">${c.singleCircle ? '🔁 Tout le monde forme un seul grand cercle.' : `🔁 ${r.circles} cercles de cadeaux (normal après une réinitialisation).`}</p><small>Vérifié par le serveur, sans révéler qui offre à qui.</small></div>`;
     } catch (x) { out.innerHTML = '<div class="err-box">Vérification impossible, réessaie.</div>'; }
     b.disabled = false; b.textContent = 'Vérifier le tirage'; return;
   }
   if (a === 'reset') {
     const li = b.closest('li'), i = +b.dataset.i;
-    if (!b.dataset.sure) { b.dataset.sure = 1; b.textContent = 'Confirmer ?'; b.classList.replace('soft', 'btn'); setTimeout(() => { if (b.isConnected) { delete b.dataset.sure; b.textContent = 'Réinitialiser'; b.classList.replace('btn', 'soft'); } }, 4000); return; }
+    if (!b.dataset.sure) { b.dataset.sure = 1; b.textContent = 'Nouveau nom ?'; b.classList.replace('soft', 'btn'); setTimeout(() => { if (b.isConnected) { delete b.dataset.sure; b.textContent = 'Réinitialiser'; b.classList.replace('btn', 'soft'); } }, 4000); return; }
     b.disabled = true; b.textContent = '…';
-    try { const r = await api('reset', {pass: PASS, id: d.id, idx: i}); if (!r.ok) throw 0; d.claimed = d.claimed.filter(c => c.idx !== i); paintDash(); }
+    try {
+      const r = await api('reset', {pass: PASS, id: d.id, idx: i}); if (!r.ok) throw 0;
+      d.claimed = d.claimed.filter(c => c.idx !== i);
+      FLASH[d.id] = r.changed ? `${d.names[i]} peut revenir sur ${d.mode === 'perso' ? 'son lien' : 'le lien'} : un nouveau prénom l’attend.` : `${d.names[i]} peut revenir, mais garde le même prénom : tous les autres ont déjà découvert le leur, aucun échange n’est possible.`;
+      paintDash(); setTimeout(() => { delete FLASH[d.id]; }, 100);
+    }
     catch (x) { b.disabled = false; b.textContent = 'Erreur'; }
     return;
   }
@@ -632,7 +641,8 @@ async function personal(slug, token){
   sub.textContent = d.title || 'Un tirage t’attend sous le sapin.';
   const key = 'ss:p:' + slug + ':' + token;
   let saved = null; try { saved = JSON.parse(store.get(key) || 'null'); } catch (e) {}
-  if (saved && saved.target) return reveal(d.me, saved.target, pillsOf(d), false);
+  if (saved && saved.target && d.opened) return reveal(d.me, saved.target, pillsOf(d), false);
+  store.del(key);
   reveal(d.me, '', pillsOf(d), true, async () => {
     const r = await api('claim', {id: slug, code: token});
     if (!r.ok) throw new Error(r.error || 'x');

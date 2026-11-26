@@ -201,7 +201,18 @@ function reset_(id, idx) {
   try {
     const sh = sheet_(T_CLAIMS), v = sh.getDataRange().getValues();
     for (let i = v.length - 1; i >= 1; i--) if (String(v[i][0]) === id && Number(v[i][1]) === idx) sh.deleteRow(i + 1);
-    return { ok: true };
+    // Nouveau résultat : on échange la cible de idx avec celle d'une personne qui n'a pas encore découvert la sienne
+    const f = findDraw_(id);
+    if (!f) return { ok: true, changed: false };
+    const c = cycleOf_(f.r), n = c.length, t = c[idx];
+    const opened = new Set(claimsOf_(id).map(x => x.idx));
+    const cand = [];
+    for (let j = 0; j < n; j++) if (j !== idx && !opened.has(j) && c[j] !== idx && t !== j) cand.push(j);
+    if (!cand.length) return { ok: true, changed: false };
+    const j = cand[Math.floor(Math.random() * cand.length)];
+    c[idx] = c[j]; c[j] = t;
+    sheet_(T_DRAWS).getRange(f.row, 6).setValue(Utilities.base64Encode(JSON.stringify(c), Utilities.Charset.UTF_8));
+    return { ok: true, changed: true };
   } finally { lock.releaseLock(); }
 }
 function delete_(id) {
@@ -223,8 +234,9 @@ function verify_(id) {
   const recv = new Set(c);
   const once = okLen && recv.size === n && c.every(v => v >= 0 && v < n);
   const noSelf = c.every((v, i) => v !== i);
-  let steps = 0, k = 0; do { k = c[k]; steps++; } while (k !== 0 && steps <= n);
-  return { ok: true, n: n, checks: { everyoneGives: okLen, everyoneReceivesOnce: once, nobodySelf: noSelf, singleCircle: once && steps === n } };
+  let circles = 0;
+  if (once) { const seen = new Array(n).fill(false); for (let s = 0; s < n; s++) if (!seen[s]) { circles++; let k = s; while (!seen[k]) { seen[k] = true; k = c[k]; } } }
+  return { ok: true, n: n, circles: circles, checks: { everyoneGives: okLen, everyoneReceivesOnce: once, nobodySelf: noSelf, singleCircle: circles === 1 } };
 }
 
 /* À lancer une fois depuis l'éditeur pour autoriser l'accès à Google Sheets */
