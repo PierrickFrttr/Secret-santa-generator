@@ -11,6 +11,11 @@ Générateur de Secret Santa, ambiance Noël, avec espace organisateur et liens 
 2. Chaque participant touche son prénom, confirme, et ouvre son paquet.
 3. L'organisateur suit qui a découvert son prénom (jamais qui offre à qui), peut réinitialiser un participant ou supprimer un tirage.
 
+## Plusieurs organisateurs
+- L'organisateur principal se connecte avec l'identifiant `pierrick`.
+- Depuis « Organisateurs », il crée un lien d'invitation (valable 14 jours, utilisable une fois). L'invité choisit son identifiant et son mot de passe.
+- Chaque organisateur ne voit que ses propres tirages. Si un organisateur est retiré, ses tirages reviennent à `pierrick`.
+
 ## Deux types de liens
 - **Lien de groupe** : un seul lien dans la conversation, chacun touche son prénom (une seule fois par prénom).
 - **Lien par personne** (anti-triche) : chacun reçoit en privé un lien du type `/noel-cpe/lea-x7k2m`, qui ne fonctionne que pour lui.

@@ -270,6 +270,12 @@ footer button{background:none;color:var(--night2);font-weight:700;text-decoratio
 
 .flash{background:#fff4d6;color:#6b4a0c;border-radius:14px;padding:12px 16px;font-weight:600;margin-top:14px;font-size:15px}
 .check .circ{margin:0 0 6px;font-size:14px;opacity:.85}
+
+.toolbar .who{margin:4px 0 0;font-size:14px;color:var(--muted)}
+.toolbar .who b{color:var(--night2)}
+.people.one{grid-template-columns:minmax(0,1fr)}
+.panel .row{justify-content:flex-start}
+@media(max-width:600px){.toolbar .who{text-align:center}.toolbar>div:first-child{width:100%}.people li .acts .ghost{min-height:36px}.people li:has(.ask-inline){flex-wrap:wrap}.people li:has(.ask-inline) .acts{width:100%;flex-wrap:wrap}.people li:has(.wa1)+li,.people li:has([data-o=copyinv]){flex-wrap:wrap}.people li:has([data-o=copyinv]) .acts{width:100%}}
 </style>
 </head>
 <body>
@@ -327,12 +333,12 @@ const local = location.protocol === 'file:';
 function route(){
   const q = new URLSearchParams(location.search);
   if (q.get('t')) return {slug: q.get('t'), token: q.get('c') || ''};
-  if (q.has('admin')) return {admin: true};
+  if (q.has('admin')) return {admin: true, invite: q.get('i') || ''};
   if (location.hash.length > 20) return {legacy: location.hash.slice(1)};
   if (local) return {home: true};
   const rest = location.pathname.slice(ROOT.length).split('/').filter(Boolean)[0] || '';
   if (!rest || rest === 'index.html' || rest === '404.html') return {home: true};
-  if (rest === 'admin') return {admin: true};
+  if (rest === 'admin') return {admin: true, invite: location.pathname.slice(ROOT.length).split('/').filter(Boolean)[1] || ''};
   const segs = location.pathname.slice(ROOT.length).split('/').filter(Boolean);
   return {slug: decodeURIComponent(segs[0]).toLowerCase(), token: decodeURIComponent(segs[1] || '').toLowerCase()};
 }
@@ -381,22 +387,27 @@ function home(){
 }
 
 /* ---------- organisateur ---------- */
-let PASS = store.get('ss:pass') || '';
-async function admin(){
+let PASS = store.get('ss:pass') || '', USER = store.get('ss:user') || (PASS ? 'pierrick' : ''), SUPER = false;
+const signIn = (u, p, sup) => { USER = u; PASS = p; SUPER = !!sup; store.set('ss:user', u); store.set('ss:pass', p); };
+const signOut = () => { USER = ''; PASS = ''; SUPER = false; store.del('ss:user'); store.del('ss:pass'); };
+const AUTH = () => ({user: USER, pass: PASS});
+const inviteLink = code => local ? location.href.split('?')[0] + '?admin&i=' + code : location.origin + ROOT + 'admin/' + code;
+async function admin(invite){
   card.classList.add('wide'); sub.textContent = 'Espace organisateur'; foot.innerHTML = '<button type="button" id="hm">Retour à l’accueil</button>';
   foot.querySelector('#hm').onclick = () => go('');
   loading();
   try {
-    if (PASS) { const r = await api('login', {pass: PASS}); if (r.ok) return dashboard(); PASS = ''; store.del('ss:pass'); if (r.error === 'locked') return loginForm('Trop d’essais. Réessaie dans 10 minutes.'); }
+    if (invite) return await joinForm(invite);
+    if (PASS) { const r = await api('login', AUTH()); if (r.ok) { SUPER = r.super; return dashboard(); } signOut(); if (r.error === 'locked') return loginForm('Trop d’essais. Réessaie dans 10 minutes.'); }
     const s = await api('status');
     s.setup ? loginForm() : setupForm();
-  } catch (e) { fail('Impossible de joindre le serveur. Vérifie ta connexion.', admin); }
+  } catch (e) { fail('Impossible de joindre le serveur. Vérifie ta connexion.', () => admin(invite)); }
 }
 function setupForm(){
   app.innerHTML = `
     <form class="login" id="f">
       <h2>Ton espace organisateur</h2>
-      <p class="lead">Choisis un mot de passe (8 caractères minimum). Il protégera tous tes tirages.</p>
+      <p class="lead">Choisis un mot de passe (8 caractères minimum). Ton identifiant sera « pierrick ».</p>
       <label for="p1">Mot de passe</label><input id="p1" type="password" autocomplete="new-password" minlength="8" required>
       <label for="p2">Confirmer</label><input id="p2" type="password" autocomplete="new-password" minlength="8" required>
       <p class="err" id="err"></p>
@@ -409,7 +420,7 @@ function setupForm(){
     if (a.length < 8) return err.textContent = '8 caractères minimum.';
     if (a !== b) return err.textContent = 'Les deux mots de passe sont différents.';
     const bt = f.querySelector('button'); bt.disabled = true; bt.textContent = 'Création…';
-    try { const r = await api('setup', {pass: a}); if (!r.ok) throw new Error(r.error); PASS = a; store.set('ss:pass', a); dashboard(); }
+    try { const r = await api('setup', {pass: a}); if (!r.ok) throw new Error(r.error); signIn('pierrick', a, true); dashboard(); }
     catch (x) { bt.disabled = false; bt.textContent = 'Créer mon espace'; err.textContent = x.message === 'already' ? 'Un mot de passe existe déjà.' : 'Erreur, réessaie.'; }
   };
 }
@@ -417,32 +428,65 @@ function loginForm(msg){
   app.innerHTML = `
     <form class="login" id="f">
       <h2>Connexion</h2>
-      <p class="lead">Entre ton mot de passe organisateur.</p>
+      <p class="lead">Entre ton identifiant et ton mot de passe organisateur.</p>
+      <label for="us">Identifiant</label><input id="us" autocomplete="username" autocapitalize="none" spellcheck="false" required value="${esc(store.get('ss:lastuser') || '')}">
       <label for="pw">Mot de passe</label><input id="pw" type="password" autocomplete="current-password" required>
       <p class="err" id="err">${esc(msg || '')}</p>
       <button class="btn" type="submit">Se connecter</button>
     </form>`;
   const f = app.querySelector('#f'), err = app.querySelector('#err');
-  f.querySelector('#pw').focus();
+  (f.querySelector('#us').value ? f.querySelector('#pw') : f.querySelector('#us')).focus();
   f.onsubmit = async e => {
     e.preventDefault();
-    const p = f.querySelector('#pw').value, bt = f.querySelector('button');
+    const u = slugify(f.querySelector('#us').value), p = f.querySelector('#pw').value, bt = f.querySelector('button');
     bt.disabled = true; bt.textContent = 'Connexion…';
     try {
-      const r = await api('login', {pass: p});
-      if (r.ok) { PASS = p; store.set('ss:pass', p); return dashboard(); }
-      err.textContent = r.error === 'locked' ? 'Trop d’essais. Réessaie dans 10 minutes.' : 'Mot de passe incorrect.';
+      const r = await api('login', {user: u, pass: p});
+      if (r.ok) { store.set('ss:lastuser', r.user); signIn(r.user, p, r.super); return dashboard(); }
+      err.textContent = r.error === 'locked' ? 'Trop d’essais. Réessaie dans 10 minutes.' : 'Identifiant ou mot de passe incorrect.';
     } catch (x) { err.textContent = 'Impossible de joindre le serveur.'; }
     bt.disabled = false; bt.textContent = 'Se connecter';
   };
 }
+async function joinForm(code){
+  const r = await api('invitecheck', {code});
+  if (!r.ok) return fail('Cette invitation n’est plus valable : elle a déjà été utilisée ou a expiré (14 jours). Demande un nouveau lien à Pierrick.');
+  app.innerHTML = `
+    <form class="login" id="f">
+      <h2>Bienvenue, organisateur !</h2>
+      <p class="lead">Tu as été invité à créer tes propres tirages de Secret Santa. Choisis ton identifiant et ton mot de passe.</p>
+      <label for="us">Identifiant</label><input id="us" placeholder="ex. marie" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="32" required>
+      <p class="slugline" id="usp"></p>
+      <label for="p1">Mot de passe (8 caractères minimum)</label><input id="p1" type="password" autocomplete="new-password" minlength="8" required>
+      <label for="p2">Confirmer</label><input id="p2" type="password" autocomplete="new-password" minlength="8" required>
+      <p class="err" id="err"></p>
+      <button class="btn" type="submit">Créer mon compte</button>
+    </form>`;
+  const f = app.querySelector('#f'), err = app.querySelector('#err'), us = f.querySelector('#us');
+  us.oninput = () => { const v = slugify(us.value); f.querySelector('#usp').innerHTML = v && v !== us.value.trim() ? `Tu te connecteras avec : <b>${esc(v)}</b>` : ''; };
+  us.focus();
+  f.onsubmit = async e => {
+    e.preventDefault();
+    const u = slugify(us.value), a = f.querySelector('#p1').value, b = f.querySelector('#p2').value;
+    if (u.length < 2) return err.textContent = 'Identifiant trop court.';
+    if (a.length < 8) return err.textContent = 'Mot de passe : 8 caractères minimum.';
+    if (a !== b) return err.textContent = 'Les deux mots de passe sont différents.';
+    const bt = f.querySelector('button'); bt.disabled = true; bt.textContent = 'Création…';
+    try {
+      const r = await api('join', {code, user: u, pass: a});
+      if (r.ok) { store.set('ss:lastuser', r.user); signIn(r.user, a, false); history.replaceState(null, '', local ? '?admin' : ROOT + 'admin'); return dashboard(); }
+      err.textContent = ({taken: 'Cet identifiant est déjà pris, choisis-en un autre.', invite: 'Cette invitation n’est plus valable.', user: 'Identifiant trop court.', short: '8 caractères minimum.'})[r.error] || 'Erreur, réessaie.';
+    } catch (x) { err.textContent = 'Impossible de joindre le serveur.'; }
+    bt.disabled = false; bt.textContent = 'Créer mon compte';
+  };
+}
 
-let DRAWS = [], creating = false; const FLASH = {};
+let DRAWS = [], creating = false, showOrgs = false; const FLASH = {};
 async function dashboard(){
   loading('Chargement de tes tirages…');
   try {
-    const r = await api('list', {pass: PASS});
-    if (r.error === 'auth') { PASS = ''; store.del('ss:pass'); return loginForm('Reconnecte-toi.'); }
+    const r = await api('list', AUTH());
+    if (r.error === 'auth') { signOut(); return loginForm('Reconnecte-toi.'); }
     DRAWS = r.draws || [];
     paintDash();
   } catch (e) { fail('Impossible de charger les tirages.', dashboard); }
@@ -450,23 +494,57 @@ async function dashboard(){
 function paintDash(){
   app.innerHTML = `
     <div class="toolbar">
-      <h2>Mes tirages</h2>
+      <div><h2>Mes tirages</h2><p class="who">Connecté : <b>${esc(USER)}</b></p></div>
       <div class="row">
         <button class="soft mini" id="rf" type="button">Actualiser</button>
+        ${SUPER ? '<button class="soft mini" id="og" type="button">Organisateurs</button>' : ''}
         <button class="btn mini" id="nw" type="button">Nouveau tirage</button>
         <button class="ghost" id="lo" type="button">Se déconnecter</button>
       </div>
     </div>
+    <div id="orgs"></div>
     <div id="create"></div>
     <div id="list"></div>`;
   app.querySelector('#rf').onclick = dashboard;
-  app.querySelector('#nw').onclick = () => { creating = true; createForm(); };
-  app.querySelector('#lo').onclick = () => { PASS = ''; store.del('ss:pass'); loginForm(); };
+  app.querySelector('#nw').onclick = () => { creating = true; createForm(); app.querySelector('#create').scrollIntoView({behavior: reduced ? 'auto' : 'smooth', block: 'start'}); };
+  app.querySelector('#lo').onclick = () => { signOut(); loginForm(); };
+  if (SUPER) app.querySelector('#og').onclick = () => { showOrgs = !showOrgs; showOrgs ? orgsPanel() : (app.querySelector('#orgs').innerHTML = ''); };
+  if (showOrgs && SUPER) orgsPanel();
   if (creating || !DRAWS.length) createForm();
   const list = app.querySelector('#list');
   if (!DRAWS.length) list.innerHTML = '<p class="empty-state">Aucun tirage pour l’instant. Crée le premier ci-dessus.</p>';
   else list.innerHTML = DRAWS.map(drawHTML).join('');
   list.onclick = onListClick;
+}
+async function orgsPanel(){
+  const box = app.querySelector('#orgs'); if (!box) return;
+  box.innerHTML = '<section class="panel"><div class="loading">Chargement des organisateurs…</div></section>';
+  let r; try { r = await api('orgs', AUTH()); if (!r.ok) throw 0; } catch (e) { box.innerHTML = '<div class="err-box">Impossible de charger les organisateurs.</div>'; return; }
+  const inv = r.invites.map(i => `<li><span><span class="nm">Invitation en attente</span><small>Créée le ${esc(fmt(i.created))} · valable 14 jours</small></span><span class="acts"><button class="soft mini" data-o="copyinv" data-u="${esc(inviteLink(i.code))}" type="button">Copier</button><a class="soft mini wa1" href="https://wa.me/?text=${encodeURIComponent('🎅 Je t’invite à organiser tes propres Secret Santa ! Crée ton compte ici : ' + inviteLink(i.code))}" target="_blank" rel="noopener">WhatsApp</a><button class="ghost" data-o="delinv" data-c="${esc(i.code)}" type="button">Annuler</button></span></li>`).join('');
+  const orgs = r.orgs.map(o => `<li><span><span class="nm">${esc(o.id)}</span><small>${o.draws} tirage${o.draws > 1 ? 's' : ''} · depuis le ${esc(fmt(o.created))}</small></span><span class="acts" data-slot><button class="ghost" data-o="delorg" data-id="${esc(o.id)}" type="button">Retirer</button></span></li>`).join('');
+  box.innerHTML = `
+    <section class="panel">
+      <h3>Organisateurs</h3>
+      <p class="hint">Chaque organisateur a son identifiant, son mot de passe et ne voit que ses propres tirages. Toi seul peux en inviter ou en retirer.</p>
+      <ul class="people one">
+        <li class="done"><span><span class="nm">${esc(r.me.id)} (toi)</span><small>${r.me.draws} tirage${r.me.draws > 1 ? 's' : ''} · organisateur principal</small></span></li>
+        ${orgs}${inv}
+      </ul>
+      <div class="row"><button class="btn green" data-o="invite" type="button">Inviter un organisateur</button></div>
+    </section>`;
+  box.onclick = async e => {
+    const b = e.target.closest('[data-o]'); if (!b) return;
+    const o = b.dataset.o;
+    if (o === 'copyinv') return copy(b, b.dataset.u);
+    if (o === 'invite') { b.disabled = true; b.textContent = 'Création…'; try { const x = await api('invite', AUTH()); if (!x.ok) throw 0; await orgsPanel(); } catch (x) { b.disabled = false; b.textContent = 'Erreur, réessayer'; } return; }
+    if (o === 'delinv') { b.disabled = true; try { await api('delinvite', {...AUTH(), code: b.dataset.c}); } catch (x) {} return orgsPanel(); }
+    if (o === 'delorg') {
+      b.closest('[data-slot]').innerHTML = `<span class="ask-inline">Retirer ${esc(b.dataset.id)} ? Ses tirages te reviennent.</span><button class="soft mini" data-o="nodel" type="button">Non</button><button class="btn mini" data-o="yesorg" data-id="${esc(b.dataset.id)}" type="button">Retirer</button>`;
+      return;
+    }
+    if (o === 'nodel') return orgsPanel();
+    if (o === 'yesorg') { b.disabled = true; b.textContent = '…'; try { const x = await api('delorg', {...AUTH(), org: b.dataset.id}); if (!x.ok) throw 0; } catch (x) {} showOrgs = true; await dashboard(); return; }
+  };
 }
 function drawHTML(d, k){
   const n = d.names.length, done = new Map(d.claimed.map(c => [c.idx, c.at]));
@@ -512,7 +590,7 @@ async function onListClick(e){
   if (a === 'verify') {
     const out = art.querySelector('[data-v]'); b.disabled = true; b.textContent = 'Vérification…';
     try {
-      const r = await api('verify', {pass: PASS, id: d.id}); if (!r.ok) throw 0;
+      const r = await api('verify', {...AUTH(), id: d.id}); if (!r.ok) throw 0;
       const c = r.checks, all = c.everyoneGives && c.everyoneReceivesOnce && c.nobodySelf;
       const line = (ok, t) => `<li class="${ok ? 'ok' : 'ko'}">${ok ? '✓' : '✗'} ${t}</li>`;
       out.innerHTML = `<div class="check ${all ? 'good' : 'bad'}"><b>${all ? 'Tirage valide' : 'Problème détecté'}</b><ul>${line(c.everyoneGives, `Les ${r.n} participants offrent chacun un cadeau`)}${line(c.everyoneReceivesOnce, 'Chacun reçoit exactement un cadeau, aucun doublon')}${line(c.nobodySelf, 'Personne ne se tire soi-même')}</ul><p class="circ">${c.singleCircle ? '🔁 Tout le monde forme un seul grand cercle.' : `🔁 ${r.circles} cercles de cadeaux (normal après une réinitialisation).`}</p><small>Vérifié par le serveur, sans révéler qui offre à qui.</small></div>`;
@@ -524,7 +602,7 @@ async function onListClick(e){
     if (!b.dataset.sure) { b.dataset.sure = 1; b.textContent = 'Nouveau nom ?'; b.classList.replace('soft', 'btn'); setTimeout(() => { if (b.isConnected) { delete b.dataset.sure; b.textContent = 'Réinitialiser'; b.classList.replace('btn', 'soft'); } }, 4000); return; }
     b.disabled = true; b.textContent = '…';
     try {
-      const r = await api('reset', {pass: PASS, id: d.id, idx: i}); if (!r.ok) throw 0;
+      const r = await api('reset', {...AUTH(), id: d.id, idx: i}); if (!r.ok) throw 0;
       d.claimed = d.claimed.filter(c => c.idx !== i);
       FLASH[d.id] = r.changed ? `${d.names[i]} peut revenir sur ${d.mode === 'perso' ? 'son lien' : 'le lien'} : un nouveau prénom l’attend.` : `${d.names[i]} peut revenir, mais garde le même prénom : tous les autres ont déjà découvert le leur, aucun échange n’est possible.`;
       paintDash(); setTimeout(() => { delete FLASH[d.id]; }, 100);
@@ -540,7 +618,7 @@ async function onListClick(e){
   if (a === 'nodel') { b.closest('[data-slot]').innerHTML = '<button class="ghost" data-a="del" type="button">Supprimer ce tirage</button>'; return; }
   if (a === 'yesdel') {
     b.disabled = true; b.textContent = 'Suppression…';
-    try { const r = await api('delete', {pass: PASS, id: d.id}); if (!r.ok) throw 0; DRAWS = DRAWS.filter(x => x !== d); paintDash(); }
+    try { const r = await api('delete', {...AUTH(), id: d.id}); if (!r.ok) throw 0; DRAWS = DRAWS.filter(x => x !== d); paintDash(); }
     catch (x) { b.disabled = false; b.textContent = 'Erreur, réessayer'; }
   }
 }
@@ -600,7 +678,7 @@ function createForm(){
     if (draft.length < 3) return err.textContent = 'Il faut au moins 3 participants.';
     const bt = $('#go'); bt.disabled = true; bt.textContent = 'Tirage en cours…';
     try {
-      const r = await api('create', {pass: PASS, title: ev.value, budget: $('#bu').value, date: $('#da').value, slug: slugTouched ? sl.value : '', names: draft, mode: modeOf()});
+      const r = await api('create', {...AUTH(), title: ev.value, budget: $('#bu').value, date: $('#da').value, slug: slugTouched ? sl.value : '', names: draft, mode: modeOf()});
       if (!r.ok) throw new Error(r.error);
       draft = []; store.set('ss:draft', '[]'); creating = false;
       await dashboard();
@@ -759,7 +837,7 @@ function legacy(code){
 function render(){
   const r = route();
   if (r.legacy) return legacy(r.legacy);
-  if (r.admin) return admin();
+  if (r.admin) return admin(r.invite);
   if (r.slug) return r.token ? personal(r.slug, r.token) : participant(r.slug);
   home();
 }

@@ -6,7 +6,9 @@
  */
 const PROPS = PropertiesService.getScriptProperties();
 const T_DRAWS = 'Tirages', T_CLAIMS = 'Découvertes';
-const HEAD_DRAWS = ['id', 'titre', 'budget', 'date', 'prenoms', 'cercle (codé)', 'cree_le', 'mode', 'codes'];
+const HEAD_DRAWS = ['id', 'titre', 'budget', 'date', 'prenoms', 'cercle (codé)', 'cree_le', 'mode', 'codes', 'organisateur'];
+const T_ORGS = 'Organisateurs', HEAD_ORGS = ['identifiant', 'sel', 'empreinte', 'cree_le'];
+const SUPER = 'pierrick';
 
 function db_() {
   let id = PROPS.getProperty('SHEET_ID'), ss;
@@ -22,18 +24,17 @@ function sheet_(name) {
   let sh = ss.getSheetByName(name);
   if (!sh) {
     sh = ss.insertSheet(name);
-    const head = name === T_DRAWS
-      ? HEAD_DRAWS
-      : ['id', 'index', 'prenom', 'decouvert_le'];
+    const head = name === T_DRAWS ? HEAD_DRAWS : name === T_ORGS ? HEAD_ORGS : ['id', 'index', 'prenom', 'decouvert_le'];
     sh.getRange(1, 1, 1, head.length).setValues([head]).setFontWeight('bold');
     sh.setFrozenRows(1);
-    sh.getRange('A:I').setNumberFormat('@');
+    sh.getRange('A:J').setNumberFormat('@');
     const def = ss.getSheetByName('Feuille 1') || ss.getSheetByName('Sheet1');
     if (def && ss.getSheets().length > 1) ss.deleteSheet(def);
   }
   if (name === T_DRAWS && sh.getLastColumn() < HEAD_DRAWS.length) {
     sh.getRange(1, 1, 1, HEAD_DRAWS.length).setValues([HEAD_DRAWS]).setFontWeight('bold');
-    sh.getRange('A:I').setNumberFormat('@');
+    sh.getRange('A:J').setNumberFormat('@');
+    sh.getRange('A:J').setNumberFormat('@');
   }
   return sh;
 }
@@ -54,15 +55,27 @@ function handle_(p) {
       case 'claim': return out_(claim_(String(p.id || ''), Number(p.idx), String(p.code || '')));
       case 'status': return out_({ ok: true, setup: !!PROPS.getProperty('ADMIN_HASH') });
       case 'setup': return out_(setup_(String(p.pass || '')));
+      case 'join': return out_(join_(p));
+      case 'invitecheck': return out_({ ok: !!invites_()[String(p.code || '')] });
     }
-    if (!isAdmin_(String(p.pass || ''))) return out_({ error: 'auth' });
+    const me = auth_(p);
+    if (!me) return out_({ error: 'auth' });
+    const id = String(p.id || '');
+    if (['reset', 'delete', 'verify'].indexOf(p.action) >= 0 && !owns_(id, me)) return out_({ error: 'notfound' });
     switch (p.action) {
-      case 'login': return out_({ ok: true });
-      case 'list': return out_({ ok: true, draws: list_() });
-      case 'create': return out_(create_(p));
-      case 'reset': return out_(reset_(String(p.id || ''), Number(p.idx)));
-      case 'delete': return out_(delete_(String(p.id || '')));
-      case 'verify': return out_(verify_(String(p.id || '')));
+      case 'login': return out_({ ok: true, user: me.id, super: me.super });
+      case 'list': return out_({ ok: true, draws: list_(me) });
+      case 'create': return out_(create_(p, me));
+      case 'reset': return out_(reset_(id, Number(p.idx)));
+      case 'delete': return out_(delete_(id));
+      case 'verify': return out_(verify_(id));
+    }
+    if (!me.super) return out_({ error: 'forbidden' });
+    switch (p.action) {
+      case 'orgs': return out_(orgs_());
+      case 'invite': return out_(invite_());
+      case 'delinvite': return out_(delInvite_(String(p.code || '')));
+      case 'delorg': return out_(delOrg_(slug_(p.org)));
     }
     return out_({ error: 'action' });
   } catch (err) {
@@ -87,15 +100,78 @@ function setup_(pass) {
     return { ok: true };
   } finally { lock.releaseLock(); }
 }
-function isAdmin_(pass) {
-  const h = PROPS.getProperty('ADMIN_HASH');
-  if (!h || !pass) return false;
-  const cache = CacheService.getScriptCache();
-  const fails = Number(cache.get('fails') || 0);
+function hashWith_(salt, pass) {
+  return Utilities.base64Encode(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, salt + '|' + pass, Utilities.Charset.UTF_8));
+}
+function findOrg_(u) {
+  const v = rows_(T_ORGS);
+  for (let i = 0; i < v.length; i++) if (String(v[i][0]) === u) return { row: i + 2, r: v[i] };
+  return null;
+}
+function auth_(p) {
+  const u = slug_(p.user) || SUPER, pass = String(p.pass || '');
+  if (!pass) return null;
+  const cache = CacheService.getScriptCache(), key = 'fails:' + u;
+  const fails = Number(cache.get(key) || 0);
   if (fails >= 10) throw new Error('locked');
-  const ok = hash_(pass) === h;
-  if (!ok) cache.put('fails', String(fails + 1), 600);
-  return ok;
+  let ok = false;
+  if (u === SUPER) { const h = PROPS.getProperty('ADMIN_HASH'); ok = !!h && hash_(pass) === h; }
+  else { const o = findOrg_(u); ok = !!o && hashWith_(String(o.r[1]), pass) === String(o.r[2]); }
+  if (!ok) { cache.put(key, String(fails + 1), 600); return null; }
+  return { id: u, super: u === SUPER };
+}
+function ownerOf_(r) { return String(r[9] || '') || SUPER; }
+function owns_(id, me) { const f = findDraw_(id); return !!f && ownerOf_(f.r) === me.id; }
+
+/* ---------- invitations et organisateurs (réservé à pierrick) ---------- */
+function invites_() {
+  const all = JSON.parse(PROPS.getProperty('INVITES') || '{}'), now = Date.now(), out = {};
+  Object.keys(all).forEach(k => { if (now - new Date(all[k]).getTime() < 14 * 864e5) out[k] = all[k]; });
+  return out;
+}
+function invite_() {
+  const AL = 'abcdefghjkmnpqrstuvwxyz23456789'; let code = '';
+  for (let i = 0; i < 10; i++) code += AL[Math.floor(Math.random() * AL.length)];
+  const all = invites_(); all[code] = new Date().toISOString();
+  PROPS.setProperty('INVITES', JSON.stringify(all));
+  return { ok: true, code: code };
+}
+function delInvite_(code) {
+  const all = invites_(); delete all[code];
+  PROPS.setProperty('INVITES', JSON.stringify(all));
+  return { ok: true };
+}
+function join_(p) {
+  const lock = LockService.getScriptLock(); lock.waitLock(15000);
+  try {
+    const code = String(p.code || ''), all = invites_();
+    if (!all[code]) return { error: 'invite' };
+    const u = slug_(p.user), pass = String(p.pass || '');
+    if (u.length < 2) return { error: 'user' };
+    if (u === SUPER || u === 'admin' || findOrg_(u)) return { error: 'taken' };
+    if (pass.length < 8) return { error: 'short' };
+    const salt = Utilities.getUuid();
+    sheet_(T_ORGS).appendRow([u, salt, hashWith_(salt, pass), new Date().toISOString()]);
+    delete all[code]; PROPS.setProperty('INVITES', JSON.stringify(all));
+    return { ok: true, user: u };
+  } finally { lock.releaseLock(); }
+}
+function orgs_() {
+  const draws = rows_(T_DRAWS), count = u => draws.filter(r => ownerOf_(r) === u).length;
+  const list = rows_(T_ORGS).map(r => ({ id: String(r[0]), created: String(r[3]), draws: count(String(r[0])) }));
+  const inv = invites_();
+  return { ok: true, orgs: list, me: { id: SUPER, draws: count(SUPER) }, invites: Object.keys(inv).map(k => ({ code: k, created: inv[k] })) };
+}
+function delOrg_(u) {
+  const lock = LockService.getScriptLock(); lock.waitLock(15000);
+  try {
+    const o = findOrg_(u);
+    if (!o) return { error: 'notfound' };
+    sheet_(T_ORGS).deleteRow(o.row);
+    const sh = sheet_(T_DRAWS), v = sh.getDataRange().getValues();
+    for (let i = 1; i < v.length; i++) if (String(v[i][9] || '') === u) sh.getRange(i + 1, 10).setValue(SUPER);
+    return { ok: true };
+  } finally { lock.releaseLock(); }
 }
 
 /* ---------- données ---------- */
@@ -164,7 +240,7 @@ function slug_(s) {
   return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
     .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 32).replace(/-+$/, '');
 }
-function create_(p) {
+function create_(p, me) {
   const clean = s => String(s || '').trim().replace(/\s+/g, ' ');
   const names = (Array.isArray(p.names) ? p.names : []).map(n => clean(n).slice(0, 30)).filter(Boolean);
   const low = names.map(n => n.toLowerCase());
@@ -184,13 +260,13 @@ function create_(p) {
     const enc = Utilities.base64Encode(JSON.stringify(c), Utilities.Charset.UTF_8);
     const perso = p.mode === 'perso', AL = 'abcdefghjkmnpqrstuvwxyz23456789', used = {};
     const codes = perso ? names.map(() => { let k; do { k = ''; for (let i = 0; i < 5; i++) k += AL[Math.floor(Math.random() * AL.length)]; } while (used[k]); used[k] = 1; return k; }) : [];
-    sheet_(T_DRAWS).appendRow([id, title, budget, date, JSON.stringify(names), enc, new Date().toISOString(), perso ? 'perso' : 'commun', JSON.stringify(codes)]);
+    sheet_(T_DRAWS).appendRow([id, title, budget, date, JSON.stringify(names), enc, new Date().toISOString(), perso ? 'perso' : 'commun', JSON.stringify(codes), me.id]);
     return { ok: true, id: id };
   } finally { lock.releaseLock(); }
 }
-function list_() {
+function list_(me) {
   const claims = rows_(T_CLAIMS);
-  return rows_(T_DRAWS).map(r => {
+  return rows_(T_DRAWS).filter(r => ownerOf_(r) === me.id).map(r => {
     const d = drawObj_(r);
     d.claimed = claims.filter(c => String(c[0]) === d.id).map(c => ({ idx: Number(c[1]), at: String(c[3]) }));
     return d;
