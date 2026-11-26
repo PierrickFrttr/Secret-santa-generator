@@ -26,7 +26,7 @@ button{font:inherit;cursor:pointer;border:0}
 button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
 
 /* ciel */
-.sky{position:fixed;inset:0;pointer-events:none;z-index:0}
+.sky{position:fixed;top:0;right:0;bottom:0;left:0;pointer-events:none;z-index:0}
 .sky .st{position:absolute;width:2px;height:2px;border-radius:50%;background:#fff;animation:tw 3s ease-in-out infinite}
 .flake{position:absolute;top:-12px;border-radius:50%;background:#fff;animation:fall linear infinite}
 @keyframes tw{50%{opacity:.25}}
@@ -276,6 +276,9 @@ footer button{background:none;color:var(--night2);font-weight:700;text-decoratio
 .people.one{grid-template-columns:minmax(0,1fr)}
 .panel .row{justify-content:flex-start}
 @media(max-width:600px){.toolbar .who{text-align:center}.toolbar>div:first-child{width:100%}.people li .acts .ghost{min-height:36px}.people li:has(.ask-inline){flex-wrap:wrap}.people li:has(.ask-inline) .acts{width:100%;flex-wrap:wrap}.people li:has(.wa1)+li,.people li:has([data-o=copyinv]){flex-wrap:wrap}.people li:has([data-o=copyinv]) .acts{width:100%}}
+
+.slowjs{opacity:0;animation:showlate .4s 12s forwards}
+@keyframes showlate{to{opacity:1}}
 </style>
 </head>
 <body>
@@ -310,7 +313,7 @@ footer button{background:none;color:var(--night2);font-weight:700;text-decoratio
       <path d="M44 32 L30 60 L38 56 L42 62 L48 34Z M52 32 L66 60 L58 56 L54 62 L48 34Z" fill="#a8172a"/>
       <circle cx="48" cy="30" r="9" fill="#e23a48"/>
     </svg>
-    <div id="app" aria-live="polite"></div>
+    <div id="app" aria-live="polite"><div class="loading">Chargement…</div><p class="lead slowjs">Ça ne s’affiche pas ? Ton navigateur est peut-être trop ancien. Mets ton téléphone à jour, ou ouvre ce lien dans Safari ou Chrome (appui long sur le lien, puis « Ouvrir dans… »).</p></div>
   </div>
   <footer id="foot"></footer>
 </main>
@@ -321,7 +324,7 @@ const API = 'https://script.google.com/macros/s/AKfycbx4bNPRGJQ-YUghsLQ1pFR1GnQN
 const app = document.getElementById('app'), foot = document.getElementById('foot'), sub = document.getElementById('sub');
 const card = document.querySelector('.card');
 const SUB = 'Une liste de prénoms, un lien court à partager : chacun découvre en secret à qui il offre un cadeau.';
-const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const store = {get(k){try{return localStorage.getItem(k)}catch(e){return null}}, set(k,v){try{localStorage.setItem(k,v)}catch(e){}}, del(k){try{localStorage.removeItem(k)}catch(e){}}};
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const rnd = n => {const a = new Uint32Array(1); crypto.getRandomValues(a); return a[0] % n};
@@ -352,9 +355,13 @@ window.addEventListener('popstate', () => render());
 
 /* ---------- serveur ---------- */
 async function api(action, data = {}){
-  const r = await fetch(API, {method: 'POST', body: JSON.stringify({action, ...data})});
-  if (!r.ok) throw new Error('net');
-  return r.json();
+  const ctl = window.AbortController ? new AbortController() : null;
+  const t = ctl ? setTimeout(() => ctl.abort(), 25000) : 0;
+  try {
+    const r = await fetch(API, {method: 'POST', body: JSON.stringify(Object.assign({action: action}, data)), signal: ctl ? ctl.signal : undefined});
+    if (!r.ok) throw new Error('net');
+    return await r.json();
+  } finally { clearTimeout(t); }
 }
 const loading = txt => { app.innerHTML = `<div class="loading">${esc(txt || 'Chargement…')}</div>`; };
 const fail = (txt, retry) => {
@@ -806,37 +813,12 @@ function reveal(me, target, pills, fresh, getTarget, hello){
   }
 }
 
-/* ---------- anciens liens (tirage dans le lien) ---------- */
-const A62 = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
-function stream(seed){let k = seed >>> 0 || 1; return () => {k ^= k << 13; k ^= k >>> 17; k ^= k << 5; return (k >>> 0) & 255}}
-function decode(code){
-  if (!/^s[0-9a-zA-Z]+$/.test(code)) return null;
-  let n = 0n; for (const c of code.slice(1)) n = n * 62n + BigInt(A62.indexOf(c));
-  const bytes = []; while (n > 0n) { bytes.unshift(Number(n % 256n)); n /= 256n; }
-  if (bytes[0] !== 1 || bytes.length < 4) return null;
-  const ks = stream((bytes[1] << 8 | bytes[2]) * 2654435761);
-  try { const o = JSON.parse(new TextDecoder().decode(Uint8Array.from(bytes.slice(3), b => b ^ ks()))); return Array.isArray(o.n) && Array.isArray(o.c) && o.n.length === o.c.length ? o : null; } catch (e) { return null; }
-}
-function legacy(code){
-  const o = decode(code);
-  if (!o) { sub.textContent = SUB; return fail('Ce lien semble incomplet.'); }
-  card.classList.remove('wide'); foot.innerHTML = '';
-  sub.textContent = o.t || 'Un tirage vous attend sous le sapin.';
-  const key = 'ss:me:' + code, raw = store.get(key), pills = pillsOf({budget: o.b, date: o.d});
-  if (raw !== null && o.n[+raw] !== undefined) return reveal(o.n[+raw], o.n[o.c[+raw]], pills, false);
-  const d = {id: code, names: o.n, claimed: [], budget: o.b, date: o.d};
-  app.innerHTML = `<h2>Qui es-tu ?</h2><p class="lead">Touche ton prénom. Une seule identification par personne.</p>${pills ? `<div class="pills">${pills}</div>` : ''}<div class="tagrow">${o.n.map((n, i) => `<span class="tagwrap"><button class="tag" type="button" data-i="${i}"><span class="hand${lenCls(n)}">${esc(n)}</span></button></span>`).join('')}</div>`;
-  app.querySelector('.tagrow').onclick = e => {
-    const b = e.target.closest('.tag'); if (!b) return; const i = +b.dataset.i;
-    app.innerHTML = `<div class="ask"><p class="lead" style="margin-bottom:0">Tu confirmes être</p><p class="hand">${esc(o.n[i])} ?</p><div class="row"><button class="soft" id="no" type="button">Non, retour</button><button class="btn" id="yes" type="button">Oui, c’est moi</button></div></div>`;
-    app.querySelector('#no').onclick = () => legacy(code);
-    app.querySelector('#yes').onclick = () => { store.set(key, String(i)); reveal(o.n[i], o.n[o.c[i]], pills, true); };
-  };
-}
+/* ---------- anciens liens (tirage dans le lien) : remplacés par les liens courts ---------- */
+function legacy(){ card.classList.remove('wide'); foot.innerHTML = ''; sub.textContent = SUB; fail('Ce lien de Secret Santa n’est plus valable. Demande le nouveau lien à l’organisateur.'); }
 
 function render(){
   const r = route();
-  if (r.legacy) return legacy(r.legacy);
+  if (r.legacy) return legacy();
   if (r.admin) return admin(r.invite);
   if (r.slug) return r.token ? personal(r.slug, r.token) : participant(r.slug);
   home();
@@ -863,7 +845,7 @@ render();
     g.innerHTML = s;
   };
   drawG();
-  const gro = new ResizeObserver(drawG); gro.observe(g);
+  if (window.ResizeObserver) { const gro = new ResizeObserver(drawG); gro.observe(g); } else window.addEventListener('resize', drawG);
   const sky = document.getElementById('sky');
   let h = '';
   for (let k = 0; k < 60; k++) h += `<i class="st" style="left:${Math.random() * 100}%;top:${Math.random() * 45}%;opacity:${(.3 + Math.random() * .6).toFixed(2)};animation-delay:-${(Math.random() * 3).toFixed(1)}s"></i>`;
